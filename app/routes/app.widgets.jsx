@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, useSearchParams, useNavigation, useSubmit, useActionData } from "react-router";
 import { authenticate } from "../shopify.server.js";
-import { getAppPricingDetails } from "../utils/billing.server.js";
 import { widgetsConfig } from "../config/widgets.config.jsx";
-import { getShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
+import { getShopSettings, updateShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
+import { getAppBillingDetails } from "../utils/billing.server.js";
 import { CheckCircle2, Lock, FileText, Layers } from "lucide-react";
 import { WidgetLivePreview } from "../components/WidgetLivePreview.jsx";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
@@ -59,8 +59,16 @@ export const loader = async ({ request }) => {
   }
 
   const shopSettings = await getShopSettings(shop);
-  const billingDetails = await getAppPricingDetails(admin, session);
-  const currentPlan = billingDetails.currentPlan;
+  const billingDetails = await getAppBillingDetails(admin, session);
+  const currentPlan = billingDetails.hasActivePayment ? "PRO" : "FREE";
+
+  if (shopSettings.plan !== currentPlan) {
+    try {
+      await updateShopSettings(shop, { plan: currentPlan });
+    } catch (error) {
+      console.warn("Failed to sync plan in widgets loader:", error?.message || error);
+    }
+  }
 
   // Load live reviews and aggregates from store for real-time live preview
   let realReviews = [];
@@ -104,8 +112,10 @@ export const action = async ({ request }) => {
   // Plan verification for PRO widgets
   const widgetDef = widgetsConfig.find((w) => w.id === widgetId);
   if (widgetDef?.isPremium) {
-    const billingDetails = await getAppPricingDetails(admin, session);
-    if (!billingDetails.hasActivePayment) {
+    const billingDetails = await getAppBillingDetails(admin, session);
+    const isPro = billingDetails.hasActivePayment;
+
+    if (!isPro) {
       return {
         error: "This widget requires an active Reviora Pro plan ($4.99/mo). Please upgrade to save custom settings.",
       };

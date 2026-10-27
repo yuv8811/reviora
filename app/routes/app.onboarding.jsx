@@ -1,10 +1,9 @@
 import { useLoaderData, useFetcher, useNavigate } from "react-router";
 import { authenticate } from "../shopify.server.js";
 import { getShopSettings, updateShopSettings } from "../models/review.server.js";
-import { getAppPricingDetails } from "../utils/billing.server.js";
 import { connectDB } from "../db.server.js";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
-import process from "process";
+import { getAppBillingDetails } from "../utils/billing.server.js";
 
 export const loader = async ({ request }) => {
   const { session, admin } = await authenticate.admin(request);
@@ -17,9 +16,17 @@ export const loader = async ({ request }) => {
     url.searchParams.get("test") === "true" ||
     url.searchParams.get("test") === "1";
 
-  // Check live Shopify billing status for Pro plan via App Pricing
-  const billingDetails = await getAppPricingDetails(admin, session);
-  const hasActivePayment = billingDetails.hasActivePayment;
+  // Check live Shopify billing status via Shopify App Pricing
+  let hasActivePayment = false;
+  try {
+    const billingDetails = await getAppBillingDetails(admin, session);
+    hasActivePayment = billingDetails.hasActivePayment;
+    if (hasActivePayment && shopSettings?.plan !== "PRO") {
+      await updateShopSettings(shop, { plan: "PRO" });
+    }
+  } catch (err) {
+    hasActivePayment = shopSettings?.plan === "PRO";
+  }
 
   let defaultThemeId = "current";
   try {
@@ -57,7 +64,7 @@ export const loader = async ({ request }) => {
   return {
     shopSettings,
     shop,
-    apiKey: process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416",
+    apiKey: process.env.SHOPIFY_API_KEY || "",
     defaultThemeId,
     initialStep,
     hasActivePayment,
@@ -98,11 +105,11 @@ export const action = async ({ request }) => {
 
   if (actionType === "subscribePro") {
     try {
-      const billingDetails = await getAppPricingDetails(admin, session);
-      return { confirmationUrl: billingDetails.pricingPlansUrl };
+      const billingDetails = await getAppBillingDetails(admin, session);
+      return { confirmationUrl: billingDetails.pricingUrl };
     } catch (err) {
       console.error("subscribePro error in onboarding:", err?.message || err);
-      return { error: err?.message || "Failed to initiate billing request" };
+      return { error: err?.message || "Failed to load pricing page" };
     }
   }
 

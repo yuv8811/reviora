@@ -5,10 +5,8 @@ import {
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
 import { MongoDBSessionStorage } from "@shopify/shopify-app-session-storage-mongodb";
-import dns from "dns";
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
-
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI =
+  process.env.MONGODB_URI;
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || "Reviora";
 export const PLAN_FREE = "Free";
 export const PLAN_PRO = "Pro";
