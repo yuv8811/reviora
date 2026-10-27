@@ -1,35 +1,20 @@
 import { useState, useEffect, useMemo } from "react";
-import process from "process";
 import { useLoaderData, useFetcher, useSubmit, useNavigation } from "react-router";
 import { CheckCircle2 } from "lucide-react";
 
 import { authenticate } from "../shopify.server.js";
+import { getAppPricingDetails } from "../utils/billing.server.js";
 import { ReviewRequest } from "../models/reviewRequest.model.js";
 import { connectDB } from "../db.server.js";
-import { getShopSettings } from "../models/review.server.js";
 import { sendReviewRequestEmail } from "../utils/email.server.js";
 import { GET_RECENT_ORDERS_QUERY } from "../graphql/index.js";
 
 export const loader = async ({ request }) => {
-  const { admin, billing, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   await connectDB();
 
-  let isPro = false;
-  try {
-    const isTest = process.env.NODE_ENV !== "production";
-    const billingCheck = await billing.check({
-      plans: ["Pro"],
-      isTest,
-    });
-    isPro = Boolean(billingCheck.hasActivePayment);
-  } catch {
-    try {
-      const settings = await getShopSettings(session.shop);
-      isPro = settings?.plan === "PRO";
-    } catch {
-      // ignore
-    }
-  }
+  const billingDetails = await getAppPricingDetails(admin, session);
+  const isPro = billingDetails.hasActivePayment;
 
   const url = new URL(request.url);
   const q = url.searchParams.get("q")?.trim() || "";
@@ -98,29 +83,13 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { session, billing } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
 
   if (intent === "send_manual") {
-    let isPro = false;
-    try {
-      const isTest = process.env.NODE_ENV !== "production";
-      const billingCheck = await billing.check({
-        plans: ["Pro"],
-        isTest,
-      });
-      isPro = Boolean(billingCheck.hasActivePayment);
-    } catch {
-      try {
-        const settings = await getShopSettings(session.shop);
-        isPro = settings?.plan === "PRO";
-      } catch {
-        // ignore
-      }
-    }
-
-    if (!isPro) {
+    const billingDetails = await getAppPricingDetails(admin, session);
+    if (!billingDetails.hasActivePayment) {
       return {
         error: "Customer Review Requests is an exclusive Reviora Pro feature ($4.99/mo). Please upgrade your subscription to send review invitations.",
       };

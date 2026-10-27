@@ -1,154 +1,41 @@
 // Reviora Subscription & Billing Page - Clean Native Polaris Layout
 import { useState, useEffect } from "react";
-import process from "process";
 import { useLoaderData, useNavigation, useSubmit, useActionData, redirect } from "react-router";
 import { authenticate } from "../shopify.server.js";
-import { getShopSettings, updateShopSettings } from "../models/review.server.js";
+import { getAppPricingDetails } from "../utils/billing.server.js";
 import { Check } from "lucide-react";
 
 const PLAN_FREE = "Free";
 const PLAN_PRO = "Pro";
 
 export const loader = async ({ request }) => {
-  const { billing, session } = await authenticate.admin(request);
-  const shop = session.shop;
-
-  let hasActivePayment = false;
-  let current = null;
-
-  try {
-    const billingCheck = await billing.check({
-      plans: [PLAN_PRO],
-      isTest: process.env.NODE_ENV !== "production",
-    });
-
-    hasActivePayment = billingCheck.hasActivePayment;
-    current = billingCheck.appSubscriptions[0]?.name ?? null;
-
-    // Sync database plan state with live Shopify billing
-    const planInDb = hasActivePayment ? "PRO" : "FREE";
-    await updateShopSettings(shop, { plan: planInDb });
-  } catch (err) {
-    console.error("Billing check error:", err?.message || err);
-    try {
-      const settings = await getShopSettings(shop);
-      hasActivePayment = settings?.plan === "PRO";
-      current = hasActivePayment ? PLAN_PRO : null;
-    } catch (e) {
-      // ignore
-    }
-  }
+  const { admin, session } = await authenticate.admin(request);
+  const details = await getAppPricingDetails(admin, session);
 
   return {
-    shop,
-    hasActivePayment,
-    current,
-    currentPlan: hasActivePayment ? "PRO" : "FREE",
+    shop: details.shop,
+    hasActivePayment: details.hasActivePayment,
+    current: details.currentSubscription?.name ?? null,
+    currentPlan: details.currentPlan,
+    pricingPlansUrl: details.pricingPlansUrl,
   };
 };
 
 export const action = async ({ request }) => {
-  const { admin, billing, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+  const details = await getAppPricingDetails(admin, session);
   const form = await request.formData();
   const plan = form.get("plan");
   const intent = form.get("intent");
 
-  // Handle cancellation / downgrade to Free
+  // In Shopify App Pricing (Managed Pricing), plan selection, cancellation, and upgrades
+  // are all handled on Shopify's native pricing plans page
   if (intent === "cancel" || plan === "FREE" || plan === PLAN_FREE) {
-    try {
-      const { appSubscriptions } = await billing.check({
-        plans: [PLAN_PRO],
-        isTest: process.env.NODE_ENV !== "production",
-      });
-
-      if (appSubscriptions && appSubscriptions.length > 0) {
-        await billing.cancel({
-          subscriptionId: appSubscriptions[0].id,
-          isTest: process.env.NODE_ENV !== "production",
-          prorate: true,
-        });
-      }
-    } catch (err) {
-      console.error("Failed to cancel subscription via billing API:", err?.message || err);
-    }
-
-    try {
-      await updateShopSettings(session.shop, { plan: "FREE" });
-    } catch (err) {
-      console.error("Failed to update shop setting plan to FREE:", err?.message || err);
-    }
-
-    return redirect("/app/billing");
+    return { confirmationUrl: details.pricingPlansUrl };
   }
 
-  // Requesting Pro Plan: Create subscription charge via GraphQL & return confirmationUrl for top-level redirect
   if (plan === PLAN_PRO || plan === "PRO") {
-    try {
-      const isTest = process.env.NODE_ENV !== "production";
-      const cleanShop = session.shop.replace(".myshopify.com", "");
-      const apiKey = process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416";
-      const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/billing`;
-
-      const response = await admin.graphql(
-        `#graphql
-        mutation AppSubscriptionCreate(
-          $name: String!
-          $returnUrl: URL!
-          $test: Boolean
-          $lineItems: [AppSubscriptionLineItemInput!]!
-        ) {
-          appSubscriptionCreate(
-            name: $name
-            returnUrl: $returnUrl
-            test: $test
-            lineItems: $lineItems
-          ) {
-            appSubscription {
-              id
-            }
-            confirmationUrl
-            userErrors {
-              field
-              message
-            }
-          }
-        }`,
-        {
-          variables: {
-            name: "Pro",
-            returnUrl,
-            test: isTest,
-            lineItems: [
-              {
-                plan: {
-                  appRecurringPricingDetails: {
-                    price: { amount: 4.99, currencyCode: "USD" },
-                    interval: "EVERY_30_DAYS",
-                  },
-                },
-              },
-            ],
-          },
-        }
-      );
-
-      const json = await response.json();
-      const userErrors = json?.data?.appSubscriptionCreate?.userErrors;
-      if (userErrors && userErrors.length > 0) {
-        console.error("Shopify billing userErrors:", userErrors);
-        return { error: userErrors.map((e) => e.message).join(", ") };
-      }
-
-      const confirmationUrl = json?.data?.appSubscriptionCreate?.confirmationUrl;
-      if (confirmationUrl) {
-        return { confirmationUrl };
-      }
-
-      return { error: "No confirmation URL returned by Shopify." };
-    } catch (err) {
-      console.error("Billing request error:", err?.message || err);
-      return { error: err?.message || "Failed to initiate billing request with Shopify." };
-    }
+    return { confirmationUrl: details.pricingPlansUrl };
   }
 
   return redirect("/app/billing");
