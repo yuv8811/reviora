@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useRouteError, Link, useNavigation } from "react-router";
+import { Outlet, useLoaderData, useRouteError, isRouteErrorResponse, Link, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
@@ -78,7 +78,23 @@ export default function App() {
 
 // Shopify needs React Router to catch some thrown responses, so that their headers are included in the response.
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+
+  // Fix Shopify App React Router minification bug where boundary.error checks error.constructor.name
+  if (isRouteErrorResponse(error)) {
+    return <div dangerouslySetInnerHTML={{ __html: error.data || "" }} />;
+  }
+
+  try {
+    return boundary.error(error);
+  } catch {
+    return (
+      <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
+        <h2>Application Error</h2>
+        <p>{error?.message || "An unexpected error occurred."}</p>
+      </div>
+    );
+  }
 }
 
 export const headers = (headersArgs) => {
