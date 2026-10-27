@@ -114,4 +114,4 @@ If you have questions, feedback, or data privacy requests concerning this policy
 
 - **Data Privacy Inquiries:** `privacy@reviora.com`
 - **Merchant Support:** `support@reviora.com`
-- **Application URL:** `https://reviora-62qh.onrender.com`
+- **Application URL:** `https://reviora-ef66.onrender.com`

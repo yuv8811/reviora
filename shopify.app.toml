@@ -2,7 +2,7 @@
 
 client_id = "f79eb2d3832f37be2bb3a5c7c1efd416"
 name = "Reviora"
-application_url = "https://reviora-62qh.onrender.com"
+application_url = "https://reviora-ef66.onrender.com"
 embedded = true
 
 [build]
@@ -38,7 +38,7 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://reviora-62qh.onrender.com/api/auth" ]
+redirect_urls = [ "https://reviora-ef66.onrender.com/api/auth" ]
 
 # =========================================================
 # Structured Product Metafield Definitions

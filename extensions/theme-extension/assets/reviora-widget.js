@@ -188,7 +188,7 @@
       this.apiUrl =
         cleanBaseUrl(this.getAttribute("data-api-url")) ||
         window.RevioraApiUrl ||
-        "https://reviora-62qh.onrender.com";
+        "https://reviora-ef66.onrender.com";
 
       // State
       this.rawReviews = [];
@@ -1209,7 +1209,7 @@
       this.apiUrl =
         cleanBaseUrl(this.getAttribute("data-api-url")) ||
         window.RevioraApiUrl ||
-        "https://reviora-62qh.onrender.com";
+        "https://reviora-ef66.onrender.com";
       this.reviews = [];
       this.autoplayTimer = null;
     }
@@ -1251,7 +1251,7 @@
     async fetchCarouselData() {
       const shopParam = encodeURIComponent(this.shop || "");
       const productParam = encodeURIComponent(this.productId || "all");
-      const base = this.apiUrl || "https://reviora-62qh.onrender.com";
+      const base = this.apiUrl || "https://reviora-ef66.onrender.com";
       const endpoint = `${base}/api/reviews?shop=${shopParam}&productId=${productParam}&limit=${this.limit}`;
 
       try {
@@ -1705,14 +1705,14 @@
       this.apiUrl =
         cleanBaseUrl(this.getAttribute("data-api-url")) ||
         window.RevioraApiUrl ||
-        "https://reviora-62qh.onrender.com";
+        "https://reviora-ef66.onrender.com";
 
       this.render();
       this.fetchMedia();
     }
 
     async fetchMedia() {
-      const base = this.apiUrl || window.RevioraApiUrl || "https://reviora-62qh.onrender.com";
+      const base = this.apiUrl || window.RevioraApiUrl || "https://reviora-ef66.onrender.com";
       const shopParam = encodeURIComponent(this.shop || "");
       const urls = [
         `${base}/api/reviews?shop=${shopParam}&productId=all&limit=50`,
@@ -1910,7 +1910,7 @@
       this.apiUrl =
         cleanBaseUrl(this.getAttribute("data-api-url")) ||
         window.RevioraApiUrl ||
-        "https://reviora-62qh.onrender.com";
+        "https://reviora-ef66.onrender.com";
 
       this.storageKey = `reviora_qa_${this.shop}_${this.productId}`;
 
