@@ -1,0 +1,44 @@
+{{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
+
+<reviora-review-popups
+  data-shop="{{ shop.myshopify_domain | default: shop.domain }}"
+  data-position="{{ block.settings.position | default: 'bottom-left' }}"
+  data-interval="{{ block.settings.interval | default: 6 }}"
+  data-star-color="{{ block.settings.star_color | default: '#FFB800' }}">
+</reviora-review-popups>
+
+{% schema %}
+{
+  "name": "Social Proof Popups",
+  "target": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Popup Position",
+      "options": [
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "bottom-right", "label": "Bottom Right" }
+      ],
+      "default": "bottom-left"
+    },
+    {
+      "type": "range",
+      "id": "interval",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "s",
+      "label": "Rotation Interval",
+      "default": 6
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star Color",
+      "default": "#FFB800"
+    }
+  ]
+}
+{% endschema %}

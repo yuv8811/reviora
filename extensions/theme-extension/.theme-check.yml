@@ -1,0 +1,8 @@
+AssetSizeAppBlockJavaScript:
+  enabled: false
+
+ValidSchema:
+  enabled: false
+
+OrphanedSnippet:
+  enabled: false

@@ -1,0 +1,56 @@
+{{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
+
+<reviora-floating-tab
+  data-shop="{{ shop.myshopify_domain | default: shop.domain }}"
+  data-position="{{ block.settings.position | default: 'bottom-right' }}"
+  data-tab-text="{{ block.settings.tab_text | default: 'Reviews' }}"
+  data-bg-color="{{ block.settings.bg_color | default: '#0F172A' }}"
+  data-text-color="{{ block.settings.text_color | default: '#FFFFFF' }}"
+  data-star-color="{{ block.settings.star_color | default: '#FFB800' }}">
+</reviora-floating-tab>
+
+{% schema %}
+{
+  "name": "Floating Reviews Tab",
+  "target": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Tab Position",
+      "options": [
+        { "value": "bottom-right", "label": "Bottom Right" },
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "mid-right", "label": "Center Right" },
+        { "value": "mid-left", "label": "Center Left" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "text",
+      "id": "tab_text",
+      "label": "Tab Text",
+      "default": "★ Reviews"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Tab Background Color",
+      "default": "#0F172A"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Tab Text Color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star Color",
+      "default": "#FFB800"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,75 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "f79eb2d3832f37be2bb3a5c7c1efd416"
+name = "Reviora"
+application_url = "https://reviora-62qh.onrender.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-10"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/compliance/customers_data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/compliance/customers_redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/compliance/shop_redact"
+  compliance_topics = [ "shop/redact" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_orders,read_customers, read_products,read_themes"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ "https://reviora-62qh.onrender.com/api/auth" ]
+
+# =========================================================
+# Structured Product Metafield Definitions
+# =========================================================
+[product.metafields.app.reviews]
+name = "Product Reviews"
+description = "The latest 10 published reviews (public fields only)"
+type = "json"
+access.admin = "merchant_read"
+access.storefront = "public_read"
+
+[product.metafields.app.rating]
+name = "Average Rating"
+description = "Average rating"
+type = "rating"
+access.admin = "merchant_read"
+access.storefront = "public_read"
+validations.scale_min = 1.0
+validations.scale_max = 5.0
+
+[product.metafields.app.rating_count]
+name = "Rating Count"
+description = "Total published reviews"
+type = "number_integer"
+access.admin = "merchant_read"
+access.storefront = "public_read"
+
+[product.metafields.app.distribution]
+name = "Rating Distribution"
+description = "Count per star level"
+type = "json"
+access.admin = "merchant_read"
+access.storefront = "public_read"
+

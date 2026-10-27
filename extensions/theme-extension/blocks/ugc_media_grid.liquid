@@ -1,0 +1,70 @@
+{{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
+
+<div class="reviora-ugc-grid-block" style="margin: {{ block.settings.margin_top | default: 32 }}px 0 {{ block.settings.margin_bottom | default: 32 }}px 0;">
+  <reviora-ugc-media-grid
+    data-shop="{{ shop.myshopify_domain | default: shop.domain }}"
+    data-heading="{{ block.settings.heading | default: 'Customer Photos & Videos' }}"
+    data-subheading="{{ block.settings.subheading | default: 'Real photos shared by verified customers' }}"
+    data-columns="{{ block.settings.columns | default: 4 }}"
+    data-star-color="{{ block.settings.star_color | default: '#FFB800' }}">
+  </reviora-ugc-media-grid>
+</div>
+
+{% schema %}
+{
+  "name": "Photo & Video Wall",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Customer Photos & Videos"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Real photos shared by verified customers"
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "Columns per row",
+      "options": [
+        { "value": "3", "label": "3 Columns" },
+        { "value": "4", "label": "4 Columns" },
+        { "value": "5", "label": "5 Columns" }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star Color",
+      "default": "#FFB800"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Top Margin",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom Margin",
+      "default": 32
+    }
+  ]
+}
+{% endschema %}

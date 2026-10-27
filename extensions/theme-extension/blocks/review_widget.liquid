@@ -1,0 +1,50 @@
+{{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
+
+<div class="reviora-app-block" style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0;">
+  {% assign current_product_id = product.handle %}
+  {% if current_product_id == blank and template.name != 'product' %}
+    {% comment %}Default preview product handle for customizer or homepage testing{% endcomment %}
+    {% assign current_product_id = 'demo-snowboard' %}
+  {% endif %}
+
+  <reviora-reviews-widget
+    data-shop="{{ shop.myshopify_domain | default: shop.domain }}"
+    data-product-id="{{ current_product_id }}"
+    data-product-handle="{{ product.handle }}"
+    data-product-title="{{ product.title }}"
+    data-star-color="{{ block.settings.star_color | default: '#FFB800' }}"></reviora-reviews-widget>
+</div>
+
+{% schema %}
+  {
+    "name": "Reviora Reviews Widget",
+    "target": "section",
+    "settings": [
+      {
+        "type": "color",
+        "id": "star_color",
+        "label": "Star Rating Color",
+        "default": "#FFB800"
+      }, {
+        "type": "range",
+        "id": "margin_top",
+        "min": 0,
+        "max": 80,
+        "step": 4,
+        "unit": "px",
+        "label": "Top Margin",
+        "default": 32
+      }, {
+        "type": "range",
+        "id": "margin_bottom",
+        "min": 0,
+        "max": 80,
+        "step": 4,
+        "unit": "px",
+        "label": "Bottom Margin",
+        "default": 32
+      }
+    ]
+  }
+{% endschema %}

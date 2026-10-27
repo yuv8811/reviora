@@ -1,0 +1,47 @@
+import { authenticate, sessionStorage } from "../shopify.server";
+import { connectDB } from "../db.server";
+import { StoreReviews } from "../models/review.model";
+import { ReviewRequest } from "../models/reviewRequest.model";
+import { ShopSetting } from "../models/shopSetting.model";
+
+/**
+ * Mandatory Compliance Webhook: shop/redact
+ * 48 hours after an app is uninstalled, Shopify sends this webhook.
+ * All data related to the merchant shop must be permanently erased.
+ */
+export const action = async ({ request }) => {
+  const { shop, topic } = await authenticate.webhook(request);
+
+  console.log(`[Compliance] Received ${topic} for shop: ${shop}. Erasing all shop data.`);
+
+  try {
+    await connectDB();
+
+    // 1. Delete all reviews for this shop
+    await StoreReviews.deleteOne({ shop });
+
+    // 2. Delete all review requests
+    await ReviewRequest.deleteMany({ shop });
+
+    // 3. Delete shop settings
+    await ShopSetting.deleteOne({ shop });
+
+    // 4. Delete sessions
+    if (sessionStorage) {
+      const sessions = await sessionStorage.findSessionsByShop(shop);
+      if (sessions && sessions.length > 0) {
+        const sessionIds = sessions.map((s) => s.id);
+        await sessionStorage.deleteSessions(sessionIds);
+      }
+    }
+
+    console.log(`[Compliance] Successfully erased all data for shop: ${shop}`);
+  } catch (error) {
+    console.error("[Compliance Error] shop/redact handling error:", error);
+  }
+
+  return new Response(JSON.stringify({ received: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+};

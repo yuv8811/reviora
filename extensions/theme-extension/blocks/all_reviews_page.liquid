@@ -1,0 +1,65 @@
+{{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
+
+<div class="reviora-all-reviews-block" style="margin: {{ block.settings.margin_top | default: 32 }}px 0 {{ block.settings.margin_bottom | default: 32 }}px 0;">
+  <reviora-all-reviews-page
+    data-shop="{{ shop.myshopify_domain | default: shop.domain }}"
+    data-heading="{{ block.settings.heading | default: 'All Store Reviews' }}"
+    data-subheading="{{ block.settings.subheading | default: 'Verified customer feedback from across our entire catalog' }}"
+    data-star-color="{{ block.settings.star_color | default: '#FFB800' }}"
+    data-accent-color="{{ block.settings.accent_color | default: '#0F172A' }}">
+  </reviora-all-reviews-page>
+</div>
+
+{% schema %}
+{
+  "name": "All Reviews Page",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "All Store Reviews"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Verified customer feedback from across our entire catalog"
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star Color",
+      "default": "#FFB800"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent Color",
+      "default": "#0F172A"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Top Margin",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom Margin",
+      "default": 32
+    }
+  ]
+}
+{% endschema %}

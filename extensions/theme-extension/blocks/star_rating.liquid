@@ -1,0 +1,74 @@
+{{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
+
+{% assign target_product = block.settings.product | default: product %}
+{% assign app_rating = target_product.metafields.app.rating.value %}
+{% assign avg_rating = app_rating.value | default: app_rating | default: target_product.metafields.reviora.avg_rating.value | default: 5 %}
+{% assign review_count = target_product.metafields.app.rating_count.value | default: target_product.metafields.reviora.review_count.value | default: 0 %}
+
+<div class="reviora-star-badge-block" style="text-align: {{ block.settings.alignment | default: 'left' }}; margin: {{ block.settings.margin_top | default: 12 }}px 0 {{ block.settings.margin_bottom | default: 12 }}px 0;">
+  <a href="#reviora-widget-container" class="reviora-star-badge-wrap" aria-label="Customer reviews: {{ avg_rating }} out of 5 stars, {{ review_count }} reviews" style="color: {{ block.settings.colour | default: '#FFB800' }}; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+    <span class="reviora-badge-stars">
+      {% render 'stars', rating: avg_rating %}
+    </span>
+    <span style="font-size: 14px; font-weight: 700; color: #0f172a;">{{ avg_rating }}</span>
+    <span class="reviora-badge-count" style="font-size: 13px; color: #64748b;">
+      {% if review_count > 0 %}
+        ({{ review_count }} {{ review_count | pluralize: 'review', 'reviews' }})
+      {% else %}
+        (0 reviews)
+      {% endif %}
+    </span>
+  </a>
+</div>
+
+{% schema %}
+{
+  "name": "Star Rating Badge",
+  "target": "section",
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "info": "Leave blank on product template to auto-detect current product"
+    },
+    {
+      "type": "color",
+      "id": "colour",
+      "label": "Star Colour",
+      "default": "#FFB800"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Top Margin",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom Margin",
+      "default": 12
+    }
+  ]
+}
+{% endschema %}
