@@ -1,14 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, useSearchParams, useNavigation, useSubmit, useActionData } from "react-router";
 import { authenticate } from "../shopify.server.js";
+import { getAppPricingDetails } from "../utils/billing.server.js";
 import { widgetsConfig } from "../config/widgets.config.jsx";
-import { getShopSettings, updateShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
+import { getShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
 import { CheckCircle2, Lock, FileText, Layers } from "lucide-react";
 import { WidgetLivePreview } from "../components/WidgetLivePreview.jsx";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
 
 export const loader = async ({ request }) => {
-  const { admin, session, billing } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
 
   // Real-time theme fetching via Admin GraphQL
@@ -58,29 +59,8 @@ export const loader = async ({ request }) => {
   }
 
   const shopSettings = await getShopSettings(shop);
-
-  let currentPlan = shopSettings?.plan || "FREE";
-  try {
-    // eslint-disable-next-line no-undef
-    const isTest = process.env.NODE_ENV !== "production";
-    const billingCheck = await billing.check({
-      plans: ["Pro"],
-      isTest,
-    });
-    if (billingCheck.hasActivePayment) {
-      currentPlan = "PRO";
-      if (shopSettings.plan !== "PRO") {
-        await updateShopSettings(shop, { plan: "PRO" });
-      }
-    } else {
-      currentPlan = "FREE";
-      if (shopSettings.plan !== "FREE") {
-        await updateShopSettings(shop, { plan: "FREE" });
-      }
-    }
-  } catch (error) {
-    console.warn("Billing check in widgets loader failed:", error?.message || error);
-  }
+  const billingDetails = await getAppPricingDetails(admin, session);
+  const currentPlan = billingDetails.currentPlan;
 
   // Load live reviews and aggregates from store for real-time live preview
   let realReviews = [];
@@ -113,7 +93,7 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { session, billing } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const widgetId = formData.get("widgetId");
 
@@ -124,21 +104,8 @@ export const action = async ({ request }) => {
   // Plan verification for PRO widgets
   const widgetDef = widgetsConfig.find((w) => w.id === widgetId);
   if (widgetDef?.isPremium) {
-    let isPro = false;
-    try {
-      // eslint-disable-next-line no-undef
-      const isTest = process.env.NODE_ENV !== "production";
-      const billingCheck = await billing.check({
-        plans: ["Pro"],
-        isTest,
-      });
-      isPro = billingCheck.hasActivePayment;
-    } catch {
-      const settings = await getShopSettings(session.shop);
-      isPro = settings?.plan === "PRO";
-    }
-
-    if (!isPro) {
+    const billingDetails = await getAppPricingDetails(admin, session);
+    if (!billingDetails.hasActivePayment) {
       return {
         error: "This widget requires an active Reviora Pro plan ($4.99/mo). Please upgrade to save custom settings.",
       };

@@ -5,23 +5,15 @@ import {
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
 import { MongoDBSessionStorage } from "@shopify/shopify-app-session-storage-mongodb";
-import { BillingInterval } from "@shopify/shopify-app-react-router/server";
-
 import dns from "dns";
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
-const MONGODB_URI =
-  process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || "Reviora";
-export const PLAN_FREE = "Free"
-export const PLAN_PRO = "Pro"
+export const PLAN_FREE = "Free";
+export const PLAN_PRO = "Pro";
 
 const shopify = shopifyApp({
-  billing: {
-    [PLAN_PRO]: {
-      lineItems: [{ amount: 4.99, currencyCode: "USD", interval: BillingInterval.Every30Days }],
-    },
-  },
   apiKey: process.env.SHOPIFY_API_KEY || "",
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.July26,

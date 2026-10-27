@@ -1,12 +1,13 @@
 import { useLoaderData, useFetcher, useNavigate } from "react-router";
 import { authenticate } from "../shopify.server.js";
 import { getShopSettings, updateShopSettings } from "../models/review.server.js";
+import { getAppPricingDetails } from "../utils/billing.server.js";
 import { connectDB } from "../db.server.js";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
 import process from "process";
 
 export const loader = async ({ request }) => {
-  const { session, admin, billing } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   await connectDB();
   const shopSettings = await getShopSettings(shop);
@@ -16,20 +17,9 @@ export const loader = async ({ request }) => {
     url.searchParams.get("test") === "true" ||
     url.searchParams.get("test") === "1";
 
-  // Check live Shopify billing status for Pro plan
-  let hasActivePayment = false;
-  try {
-    const billingCheck = await billing.check({
-      plans: ["Pro"],
-      isTest: isTest || process.env.NODE_ENV !== "production",
-    });
-    hasActivePayment = Boolean(billingCheck.hasActivePayment);
-    if (hasActivePayment && shopSettings?.plan !== "PRO") {
-      await updateShopSettings(shop, { plan: "PRO" });
-    }
-  } catch (err) {
-    hasActivePayment = shopSettings?.plan === "PRO";
-  }
+  // Check live Shopify billing status for Pro plan via App Pricing
+  const billingDetails = await getAppPricingDetails(admin, session);
+  const hasActivePayment = billingDetails.hasActivePayment;
 
   let defaultThemeId = "current";
   try {
@@ -108,71 +98,8 @@ export const action = async ({ request }) => {
 
   if (actionType === "subscribePro") {
     try {
-      const isTestEnv = process.env.NODE_ENV !== "production";
-      const isTestParam = formData.get("isTest") === "true";
-      const testFlag = isTestEnv || isTestParam;
-
-      const cleanShop = session.shop.replace(".myshopify.com", "");
-      const apiKey = process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416";
-      const testQuery = testFlag ? "&test=true" : "";
-      const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/onboarding?step=4${testQuery}`;
-
-      const response = await admin.graphql(
-        `#graphql
-        mutation AppSubscriptionCreate(
-          $name: String!
-          $returnUrl: URL!
-          $test: Boolean
-          $lineItems: [AppSubscriptionLineItemInput!]!
-        ) {
-          appSubscriptionCreate(
-            name: $name
-            returnUrl: $returnUrl
-            test: $test
-            lineItems: $lineItems
-          ) {
-            appSubscription {
-              id
-            }
-            confirmationUrl
-            userErrors {
-              field
-              message
-            }
-          }
-        }`,
-        {
-          variables: {
-            name: "Pro",
-            returnUrl,
-            test: testFlag,
-            lineItems: [
-              {
-                plan: {
-                  appRecurringPricingDetails: {
-                    price: { amount: 4.99, currencyCode: "USD" },
-                    interval: "EVERY_30_DAYS",
-                  },
-                },
-              },
-            ],
-          },
-        }
-      );
-
-      const json = await response.json();
-      const userErrors = json?.data?.appSubscriptionCreate?.userErrors;
-      if (userErrors && userErrors.length > 0) {
-        console.error("Shopify billing userErrors in onboarding:", userErrors);
-        return { error: userErrors.map((e) => e.message).join(", ") };
-      }
-
-      const confirmationUrl = json?.data?.appSubscriptionCreate?.confirmationUrl;
-      if (confirmationUrl) {
-        return { confirmationUrl };
-      }
-
-      return { error: "No confirmation URL returned by Shopify." };
+      const billingDetails = await getAppPricingDetails(admin, session);
+      return { confirmationUrl: billingDetails.pricingPlansUrl };
     } catch (err) {
       console.error("subscribePro error in onboarding:", err?.message || err);
       return { error: err?.message || "Failed to initiate billing request" };
