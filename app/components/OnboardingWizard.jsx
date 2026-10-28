@@ -161,6 +161,7 @@ export function OnboardingWizard({
       changeStep(4);
       setSelectedPlan("PRO");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasActivePayment, isTest]);
 
   const isSubscribingPro =
@@ -243,7 +244,7 @@ export function OnboardingWizard({
       document.removeEventListener("visibilitychange", handleRecheck);
       clearInterval(timer);
     };
-  }, [currentStep, themeVerified, themeFetcher.state, themeFetcher.data]);
+  }, [currentStep, themeVerified, themeFetcher.state, themeFetcher.data, themeFetcher]);
 
 
 
@@ -257,12 +258,21 @@ export function OnboardingWizard({
 
   const resolvedApiKey = apiKey || "f79eb2d3832f37be2bb3a5c7c1efd416";
   const themeEditorUrl = `https://${shop}/admin/themes/${defaultThemeId}/editor?template=product&addAppBlockId=${resolvedApiKey}/review_widget&target=mainSection`;
+  const appEmbedUrl = `https://${shop}/admin/themes/${defaultThemeId}/editor?context=apps&activateAppId=${resolvedApiKey}/app_embed`;
 
   const handleOpenThemeEditor = () => {
     if (window.shopify?.open) {
       window.shopify.open(themeEditorUrl, "_blank");
     } else {
       window.open(themeEditorUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleOpenAppEmbed = () => {
+    if (window.shopify?.open) {
+      window.shopify.open(appEmbedUrl, "_blank");
+    } else {
+      window.open(appEmbedUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -1215,30 +1225,51 @@ export function OnboardingWizard({
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: "14px", fontWeight: "600", color: "#202223", marginBottom: "2px" }}>
-                    Open Shopify Theme Editor
+                    Enable Reviora in App Embeds (Recommended)
                   </div>
                   <div style={{ fontSize: "13px", color: "#6D7175", marginBottom: "10px", lineHeight: 1.4 }}>
-                    We will deep-link directly to your active theme&apos;s product template with the Reviora block preselected.
+                    Turn on the <strong>Reviora Reviews</strong> app embed to activate core scripts across your store, or add the widget block to your product page.
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleOpenThemeEditor}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      padding: "8px 14px",
-                      backgroundColor: "#FFFFFF",
-                      color: "#202223",
-                      border: "1px solid #C9CCCF",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Open Theme Editor <ExternalLink size={13} />
-                  </button>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={handleOpenAppEmbed}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "8px 14px",
+                        backgroundColor: "#008060",
+                        color: "#FFFFFF",
+                        border: "none",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Enable App Embed <ExternalLink size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenThemeEditor}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "8px 14px",
+                        backgroundColor: "#FFFFFF",
+                        color: "#202223",
+                        border: "1px solid #C9CCCF",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Add Product Widget Block <ExternalLink size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
