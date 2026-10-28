@@ -27,6 +27,8 @@ export function OnboardingWizard({
   hasActivePayment = false,
   currentPlan = "FREE",
   isTest = false,
+  initialThemeVerified = false,
+  initialThemeName = "",
 }) {
   const [currentStep, setCurrentStep] = useState(() => {
     if (isTest) {
@@ -78,27 +80,9 @@ export function OnboardingWizard({
 
   const [subscribeError, setSubscribeError] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
-  const [themeVerified, setThemeVerified] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(`reviora_theme_verified_${shop}`);
-        if (saved === "true") return true;
-      } catch (e) {
-        // 
-      }
-    }
-    return false;
-  });
-  const [themeName, setThemeName] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        return localStorage.getItem(`reviora_theme_name_${shop}`) || "";
-      } catch (e) {
-        // 
-      }
-    }
-    return "";
-  });
+  const [themeVerified, setThemeVerified] = useState(Boolean(initialThemeVerified));
+  const [themeName, setThemeName] = useState(initialThemeName || "");
+  const [verificationError, setVerificationError] = useState("");
 
   const totalSteps = 5;
   const [selectedWidgetId, setSelectedWidgetId] = useState("review_widget");
@@ -194,16 +178,29 @@ export function OnboardingWizard({
 
   // Capture theme verification response
   useEffect(() => {
-    if (themeFetcher.data?.verified) {
-      setThemeVerified(true);
-      const name = themeFetcher.data?.themeName || "Live Theme";
-      setThemeName(name);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(`reviora_theme_verified_${shop}`, "true");
-          localStorage.setItem(`reviora_theme_name_${shop}`, name);
-        } catch (e) {
-          // 
+    if (themeFetcher.data) {
+      if (themeFetcher.data.verified) {
+        setThemeVerified(true);
+        setVerificationError("");
+        const name = themeFetcher.data?.themeName || "Live Theme";
+        setThemeName(name);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(`reviora_theme_verified_${shop}`, "true");
+            localStorage.setItem(`reviora_theme_name_${shop}`, name);
+          } catch (e) {
+            // ignore
+          }
+        }
+      } else {
+        setThemeVerified(false);
+        setVerificationError(themeFetcher.data?.error || "Reviora Reviews app embed is not enabled yet in your theme.");
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.removeItem(`reviora_theme_verified_${shop}`);
+          } catch (e) {
+            // ignore
+          }
         }
       }
     }
@@ -211,10 +208,10 @@ export function OnboardingWizard({
 
   // Automatic background verification for theme connection on Step 4
   useEffect(() => {
-    if (currentStep !== 4 || themeVerified) return;
+    if (currentStep !== 4) return;
 
     // Trigger check immediately if idle
-    if (themeFetcher.state === "idle" && !themeFetcher.data?.verified) {
+    if (themeFetcher.state === "idle" && !themeFetcher.data) {
       themeFetcher.submit(
         { actionType: "verifyTheme" },
         { method: "POST" }
@@ -223,7 +220,7 @@ export function OnboardingWizard({
 
     // Automatically recheck when merchant returns to this tab from Shopify Theme Editor
     const handleRecheck = () => {
-      if (!themeVerified && themeFetcher.state === "idle") {
+      if (themeFetcher.state === "idle") {
         themeFetcher.submit(
           { actionType: "verifyTheme" },
           { method: "POST" }
@@ -234,15 +231,18 @@ export function OnboardingWizard({
     window.addEventListener("focus", handleRecheck);
     document.addEventListener("visibilitychange", handleRecheck);
 
-    // Heartbeat auto-poll every 4 seconds while on Step 4 until verified
-    const timer = setInterval(() => {
-      handleRecheck();
-    }, 4000);
+    // Heartbeat auto-poll every 3 seconds while on Step 4 until verified
+    let timer = null;
+    if (!themeVerified) {
+      timer = setInterval(() => {
+        handleRecheck();
+      }, 3000);
+    }
 
     return () => {
       window.removeEventListener("focus", handleRecheck);
       document.removeEventListener("visibilitychange", handleRecheck);
-      clearInterval(timer);
+      if (timer) clearInterval(timer);
     };
   }, [currentStep, themeVerified, themeFetcher.state, themeFetcher.data, themeFetcher]);
 
@@ -1316,11 +1316,16 @@ export function OnboardingWizard({
                   <div style={{ fontSize: "14px", fontWeight: "600", color: "#202223", marginBottom: "2px" }}>
                     Verify Theme Connection
                   </div>
-                  <div style={{ fontSize: "13px", color: "#6D7175", marginBottom: "12px", lineHeight: 1.4 }}>
+                  <div style={{ fontSize: "13px", color: themeVerified ? "#008060" : "#6D7175", marginBottom: "12px", lineHeight: 1.4 }}>
                     {themeVerified
-                      ? "Theme connected and verified. You're ready to complete setup."
-                      : "We automatically detect and verify your theme in the background as soon as you save."}
+                      ? "✓ Reviora Reviews app embed is enabled and verified in your theme. You can proceed to complete setup."
+                      : "The Reviora Reviews app embed must be enabled in your theme editor before you can continue."}
                   </div>
+                  {!themeVerified && verificationError && (
+                    <div style={{ padding: "8px 12px", backgroundColor: "#FFF4F2", border: "1px solid #FED3D1", borderRadius: "6px", color: "#D72C0D", fontSize: "12px", marginBottom: "12px" }}>
+                      ⚠️ {verificationError}
+                    </div>
+                  )}
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                     <button
                       type="button"

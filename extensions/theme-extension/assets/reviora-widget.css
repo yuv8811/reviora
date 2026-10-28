@@ -3,6 +3,28 @@
    Modern, conversion-focused, accessible & responsive
    ========================================================= */
 
+/* Require active App Embed block to display any Reviora storefront widgets */
+html:not(.reviora-embed-active) .reviora-app-block,
+html:not(.reviora-embed-active) .reviora-star-badge-block,
+html:not(.reviora-embed-active) reviora-reviews-widget,
+html:not(.reviora-embed-active) reviora-reviews-carousel,
+html:not(.reviora-embed-active) reviora-floating-tab,
+html:not(.reviora-embed-active) reviora-review-popups,
+html:not(.reviora-embed-active) reviora-ugc-media-grid,
+html:not(.reviora-embed-active) reviora-all-reviews-page,
+html:not(.reviora-embed-active) reviora-qa-widget,
+body:not(.reviora-embed-active) .reviora-app-block,
+body:not(.reviora-embed-active) .reviora-star-badge-block,
+body:not(.reviora-embed-active) reviora-reviews-widget,
+body:not(.reviora-embed-active) reviora-reviews-carousel,
+body:not(.reviora-embed-active) reviora-floating-tab,
+body:not(.reviora-embed-active) reviora-review-popups,
+body:not(.reviora-embed-active) reviora-ugc-media-grid,
+body:not(.reviora-embed-active) reviora-all-reviews-page,
+body:not(.reviora-embed-active) reviora-qa-widget {
+  display: none !important;
+}
+
 :root {
   --reviora-star: #ffb800;
   --reviora-primary: #0f172a;

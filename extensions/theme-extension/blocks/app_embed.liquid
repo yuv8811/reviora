@@ -1,3 +1,37 @@
+<script>
+  window.__REVIORA_APP_EMBED_ENABLED__ = true;
+  document.documentElement.classList.add('reviora-embed-active');
+  if (document.body) {
+    document.body.classList.add('reviora-embed-active');
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.body) document.body.classList.add('reviora-embed-active');
+    });
+  }
+</script>
+<style>
+  html.reviora-embed-active .reviora-app-block,
+  html.reviora-embed-active .reviora-star-badge-block,
+  html.reviora-embed-active reviora-reviews-widget,
+  html.reviora-embed-active reviora-reviews-carousel,
+  html.reviora-embed-active reviora-floating-tab,
+  html.reviora-embed-active reviora-review-popups,
+  html.reviora-embed-active reviora-ugc-media-grid,
+  html.reviora-embed-active reviora-all-reviews-page,
+  html.reviora-embed-active reviora-qa-widget,
+  body.reviora-embed-active .reviora-app-block,
+  body.reviora-embed-active .reviora-star-badge-block,
+  body.reviora-embed-active reviora-reviews-widget,
+  body.reviora-embed-active reviora-reviews-carousel,
+  body.reviora-embed-active reviora-floating-tab,
+  body.reviora-embed-active reviora-review-popups,
+  body.reviora-embed-active reviora-ugc-media-grid,
+  body.reviora-embed-active reviora-all-reviews-page,
+  body.reviora-embed-active reviora-qa-widget {
+    display: block !important;
+  }
+</style>
+
 {% schema %}
 {
   "name": "Reviora Reviews",
@@ -7,4 +41,3 @@
   "settings": []
 }
 {% endschema %}
-

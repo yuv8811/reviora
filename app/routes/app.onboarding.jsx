@@ -5,6 +5,115 @@ import { connectDB } from "../db.server.js";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
 import process from "process";
 
+async function verifyAppEmbedInTheme(admin, session) {
+  try {
+    const response = await admin.graphql(
+      `#graphql
+      query getActiveThemeForVerification {
+        themes(first: 1, roles: [MAIN]) {
+          nodes {
+            id
+            name
+          }
+        }
+      }`
+    );
+    const json = await response.json();
+    const liveTheme = json?.data?.themes?.nodes?.[0];
+    if (!liveTheme) {
+      return { verified: false, themeName: "Live Theme", error: "No active live theme found" };
+    }
+
+    const themeName = liveTheme.name || "Live Theme";
+    const themeNumericId = liveTheme.id.split("/").pop();
+
+    let settingsContent = null;
+
+    // 1. Try GraphQL theme files query for config/settings_data.json
+    try {
+      const filesRes = await admin.graphql(
+        `#graphql
+        query getThemeSettingsData($themeId: ID!) {
+          theme(id: $themeId) {
+            files(filenames: ["config/settings_data.json"], first: 1) {
+              nodes {
+                filename
+                body {
+                  ... on ThemeFileBodyText {
+                    content
+                  }
+                }
+              }
+            }
+          }
+        }`,
+        { variables: { themeId: liveTheme.id } }
+      );
+      const filesJson = await filesRes.json();
+      const node = filesJson?.data?.theme?.files?.nodes?.[0];
+      if (node?.body?.content) {
+        settingsContent = node.body.content;
+      }
+    } catch (gqlErr) {
+      console.warn("GraphQL files query fallback to REST:", gqlErr?.message || gqlErr);
+    }
+
+    // 2. Fallback to REST Asset API if needed
+    if (!settingsContent && session?.accessToken) {
+      try {
+        const restUrl = `https://${session.shop}/admin/api/2024-10/themes/${themeNumericId}/assets.json?asset[key]=config/settings_data.json`;
+        const restRes = await fetch(restUrl, {
+          headers: {
+            "X-Shopify-Access-Token": session.accessToken,
+            "Content-Type": "application/json",
+          },
+        });
+        if (restRes.ok) {
+          const restData = await restRes.json();
+          settingsContent = restData?.asset?.value;
+        }
+      } catch (restErr) {
+        console.warn("REST asset fetch failed:", restErr?.message || restErr);
+      }
+    }
+
+    if (!settingsContent) {
+      return { verified: false, themeName, themeId: themeNumericId, error: "Could not read theme settings" };
+    }
+
+    const parsed = typeof settingsContent === "string" ? JSON.parse(settingsContent) : settingsContent;
+    const blocks = {
+      ...(parsed?.current?.blocks || {}),
+      ...(parsed?.blocks || {}),
+    };
+
+    let isEmbedEnabled = false;
+    for (const key of Object.keys(blocks)) {
+      const blk = blocks[key];
+      if (!blk) continue;
+      const type = String(blk.type || "").toLowerCase();
+      // Reviora's app embed block handle is "app_embed"
+      const isEmbed = type.includes("app_embed") || (type.includes("reviora") && type.includes("embed"));
+      if (isEmbed) {
+        if (blk.disabled !== true) {
+          isEmbedEnabled = true;
+          break;
+        }
+      }
+    }
+
+    return {
+      verified: isEmbedEnabled,
+      themeName,
+      themeId: themeNumericId,
+      error: isEmbedEnabled ? null : "Reviora Reviews app embed is not enabled yet in your theme.",
+    };
+  } catch (err) {
+    console.error("Theme verification error:", err?.message || err);
+    return { verified: false, themeName: "Live Theme", error: err?.message || "Verification error" };
+  }
+}
+
 export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
   const shop = session.shop;
@@ -52,6 +161,11 @@ export const loader = async ({ request }) => {
     console.error("Theme lookup error in onboarding:", err?.message || err);
   }
 
+  const themeVerification = await verifyAppEmbedInTheme(admin, session);
+  if (themeVerification?.themeId) {
+    defaultThemeId = themeVerification.themeId;
+  }
+
   const urlStep = parseInt(url.searchParams.get("step") || "0", 10);
   const dbStep = shopSettings?.onboardingStep || 1;
   let initialStep = 1;
@@ -73,6 +187,8 @@ export const loader = async ({ request }) => {
     hasActivePayment,
     currentPlan: hasActivePayment ? "PRO" : (shopSettings?.plan || "FREE"),
     isTest,
+    initialThemeVerified: Boolean(themeVerification.verified),
+    initialThemeName: themeVerification.themeName || "Live Theme",
   };
 };
 
@@ -82,28 +198,8 @@ export const action = async ({ request }) => {
   const actionType = formData.get("actionType");
 
   if (actionType === "verifyTheme") {
-    try {
-      const response = await admin.graphql(
-        `#graphql
-        query getActiveThemeForVerification {
-          themes(first: 1, roles: [MAIN]) {
-            nodes {
-              id
-              name
-            }
-          }
-        }`
-      );
-      const json = await response.json();
-      const liveTheme = json?.data?.themes?.nodes?.[0];
-      return {
-        verified: true,
-        themeName: liveTheme?.name || "Live Theme",
-      };
-    } catch (err) {
-      console.error("Theme verification query error:", err?.message || err);
-      return { verified: true, themeName: "Live Theme" };
-    }
+    const result = await verifyAppEmbedInTheme(admin, session);
+    return result;
   }
 
   if (actionType === "subscribePro") {
@@ -243,6 +339,8 @@ export default function OnboardingPage() {
         hasActivePayment={Boolean(loaderData?.hasActivePayment)}
         currentPlan={loaderData?.currentPlan || "FREE"}
         isTest={isTest}
+        initialThemeVerified={Boolean(loaderData?.initialThemeVerified)}
+        initialThemeName={loaderData?.initialThemeName || ""}
       />
     </s-page>
   );

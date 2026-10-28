@@ -1,4 +1,33 @@
 (() => {
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
+
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
   // Global Lightbox Utility
   class RevioraLightbox {
     constructor() {
@@ -789,6 +818,20 @@
         searchInput.oninput = (e) => {
           clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
             this.searchKeyword = e.target.value;
             this.applyFiltersAndSort();
             this.render();
@@ -1052,6 +1095,20 @@
               setStep(3);
               this.fetchReviews();
               setTimeout(() => {
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
                 closeForm();
                 form.reset();
                 this.uploadedMedia = [];
@@ -1436,6 +1493,20 @@
       // Autoplay if configured
       if (this.autoplay) {
         this.autoplayTimer = setInterval(() => {
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
           if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
             track.scrollTo({ left: 0, behavior: "smooth" });
           } else {
@@ -1446,6 +1517,20 @@
         track.addEventListener("mouseenter", () => clearInterval(this.autoplayTimer));
         track.addEventListener("mouseleave", () => {
           this.autoplayTimer = setInterval(() => {
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
             if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
               track.scrollTo({ left: 0, behavior: "smooth" });
             } else {
@@ -1673,6 +1758,20 @@
         container.appendChild(toast);
 
         setTimeout(() => {
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
           if (toast.parentNode) {
             toast.classList.add("is-fading");
             setTimeout(() => toast.remove(), 300);
@@ -2181,6 +2280,20 @@
           }
 
           setTimeout(() => {
+  // If the app embed block is disabled in the theme, do not initialize or display widgets
+  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
+    const hideAll = () => {
+      document.querySelectorAll(
+        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
+      ).forEach((el) => el.style.setProperty("display", "none", "important"));
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", hideAll);
+    } else {
+      hideAll();
+    }
+    return;
+  }
             if (formBox) formBox.style.display = "none";
             if (form) {
               form.reset();
