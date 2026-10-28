@@ -195,9 +195,29 @@ export default function ReviewsManagerPage() {
     fetcher.submit({ intent: "reject", reviewId }, { method: "POST" });
   };
 
+  const handleDeleteClick = (review) => {
+    setReviewToDelete(review);
+    if (window.shopify?.modal) {
+      window.shopify.modal.show("delete-review-modal");
+    } else {
+      document.getElementById("delete-review-modal")?.showOverlay();
+    }
+  };
+
+  const closeDeleteModal = () => {
+    if (window.shopify?.modal) {
+      window.shopify.modal.hide("delete-review-modal");
+    } else {
+      document.getElementById("delete-review-modal")?.hideOverlay();
+    }
+    setReviewToDelete(null);
+  };
+
   const confirmDelete = () => {
     if (reviewToDelete) {
-      fetcher.submit({ intent: "delete", reviewId: reviewToDelete.id }, { method: "POST" });
+      const idToDelete = reviewToDelete.id || reviewToDelete._id;
+      fetcher.submit({ intent: "delete", reviewId: String(idToDelete) }, { method: "POST" });
+      closeDeleteModal();
     }
   };
 
@@ -256,6 +276,24 @@ export default function ReviewsManagerPage() {
     );
   };
 
+  const handleDeleteQuestionClick = (question) => {
+    setQuestionToDelete(question);
+    if (window.shopify?.modal) {
+      window.shopify.modal.show("delete-question-modal");
+    } else {
+      document.getElementById("delete-question-modal")?.showOverlay();
+    }
+  };
+
+  const closeDeleteQuestionModal = () => {
+    if (window.shopify?.modal) {
+      window.shopify.modal.hide("delete-question-modal");
+    } else {
+      document.getElementById("delete-question-modal")?.hideOverlay();
+    }
+    setQuestionToDelete(null);
+  };
+
   const confirmDeleteQuestion = () => {
     if (questionToDelete) {
       fetcher.submit(
@@ -265,6 +303,7 @@ export default function ReviewsManagerPage() {
         },
         { method: "POST" }
       );
+      closeDeleteQuestionModal();
     }
   };
 
@@ -471,7 +510,7 @@ export default function ReviewsManagerPage() {
                     loadingIntent={submittingReviewId === r.id ? submittingIntent : null}
                     onApprove={handleApprove}
                     onReject={handleReject}
-                    onDelete={() => setReviewToDelete(r)}
+                    onDelete={() => handleDeleteClick(r)}
                     onReply={handleOpenReply}
                   />
                 ))}
@@ -570,7 +609,7 @@ export default function ReviewsManagerPage() {
                             <s-button
                               variant="secondary"
                               tone="critical"
-                              onClick={() => setQuestionToDelete(q)}
+                              onClick={() => handleDeleteQuestionClick(q)}
                             >
                               Delete
                             </s-button>
@@ -690,78 +729,74 @@ export default function ReviewsManagerPage() {
       </s-stack>
 
       {/* Delete Review Modal */}
-      {reviewToDelete && (
-        <s-modal
-          id="delete-review-modal"
-          heading="Delete Review?"
-          open
-          onClose={() => setReviewToDelete(null)}
+      <s-modal
+        id="delete-review-modal"
+        heading="Delete Review?"
+        onClose={closeDeleteModal}
+      >
+        <s-stack gap="base">
+          <s-paragraph>
+            Are you sure you want to permanently delete this review by{" "}
+            <s-text weight="bold">{reviewToDelete?.authorName || "this customer"}</s-text>? This action cannot be undone.
+          </s-paragraph>
+          {reviewToDelete?.title && (
+            <s-banner tone="warning" heading="Review Title">
+              <s-paragraph>&ldquo;{reviewToDelete.title}&rdquo;</s-paragraph>
+            </s-banner>
+          )}
+        </s-stack>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          tone="critical"
+          loading={isSubmitting && submittingIntent === "delete" ? true : undefined}
+          onClick={confirmDelete}
         >
-          <s-stack gap="base">
-            <s-paragraph>
-              Are you sure you want to permanently delete this review by{" "}
-              <s-text weight="bold">{reviewToDelete?.authorName}</s-text>? This action cannot be undone.
-            </s-paragraph>
-            {reviewToDelete?.title && (
-              <s-banner tone="warning" heading="Review Title">
-                <s-paragraph>&ldquo;{reviewToDelete.title}&rdquo;</s-paragraph>
-              </s-banner>
-            )}
-          </s-stack>
-          <s-button
-            slot="primary-action"
-            variant="primary"
-            tone="critical"
-            loading={isSubmitting && submittingIntent === "delete" ? true : undefined}
-            onClick={confirmDelete}
-          >
-            Delete Review
-          </s-button>
-          <s-button
-            slot="secondary-actions"
-            variant="secondary"
-            onClick={() => setReviewToDelete(null)}
-          >
-            Cancel
-          </s-button>
-        </s-modal>
-      )}
+          Delete Review
+        </s-button>
+        <s-button
+          slot="secondary-actions"
+          variant="secondary"
+          onClick={closeDeleteModal}
+        >
+          Cancel
+        </s-button>
+      </s-modal>
 
       {/* Delete Question Modal */}
-      {questionToDelete && (
-        <s-modal
-          id="delete-question-modal"
-          heading="Delete Question?"
-          open
-          onClose={() => setQuestionToDelete(null)}
-        >
-          <s-stack gap="base">
-            <s-paragraph>
-              Are you sure you want to delete this question asked by{" "}
-              <s-text weight="bold">{questionToDelete?.askerName}</s-text>?
-            </s-paragraph>
+      <s-modal
+        id="delete-question-modal"
+        heading="Delete Question?"
+        onClose={closeDeleteQuestionModal}
+      >
+        <s-stack gap="base">
+          <s-paragraph>
+            Are you sure you want to delete this question asked by{" "}
+            <s-text weight="bold">{questionToDelete?.askerName || "this customer"}</s-text>?
+          </s-paragraph>
+          {questionToDelete?.question && (
             <s-banner tone="warning" heading="Question">
               <s-paragraph>&ldquo;{questionToDelete?.question}&rdquo;</s-paragraph>
             </s-banner>
-          </s-stack>
-          <s-button
-            slot="primary-action"
-            variant="primary"
-            tone="critical"
-            loading={isSubmitting && submittingIntent === "deleteQuestion" ? true : undefined}
-            onClick={confirmDeleteQuestion}
-          >
-            Delete Question
-          </s-button>
-          <s-button
-            slot="secondary-actions"
-            variant="secondary"
-            onClick={() => setQuestionToDelete(null)}
-          >
-            Cancel
-          </s-button>
-        </s-modal>
-      )}
+          )}
+        </s-stack>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          tone="critical"
+          loading={isSubmitting && submittingIntent === "deleteQuestion" ? true : undefined}
+          onClick={confirmDeleteQuestion}
+        >
+          Delete Question
+        </s-button>
+        <s-button
+          slot="secondary-actions"
+          variant="secondary"
+          onClick={closeDeleteQuestionModal}
+        >
+          Cancel
+        </s-button>
+      </s-modal>
     </s-page>
   );
 }

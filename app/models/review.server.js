@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { connectDB } from "../db.server.js";
 import { StoreReviews } from "./review.model.js";
 import { ReviewRequest } from "./reviewRequest.model.js";
@@ -443,15 +444,25 @@ export async function createReview({
  */
 export async function deleteReview(shop, reviewId, adminClient = null) {
   await connectDB();
+  const idStr = String(reviewId || "");
+  const ids = [idStr];
+  try {
+    if (mongoose.Types.ObjectId.isValid(idStr)) {
+      ids.push(new mongoose.Types.ObjectId(idStr));
+    }
+  } catch (e) {
+    // ignore
+  }
+
   const doc = await StoreReviews.findOne(
-    { shop, "reviews._id": reviewId },
+    { shop, "reviews._id": { $in: ids } },
     { "reviews.$": 1 }
   ).lean();
   const targetReview = doc?.reviews?.[0];
 
   const res = await StoreReviews.updateOne(
     { shop },
-    { $pull: { reviews: { _id: reviewId } } }
+    { $pull: { reviews: { _id: { $in: ids } } } }
   );
 
   if (targetReview?.productId || targetReview?.productHandle) {
@@ -463,7 +474,7 @@ export async function deleteReview(shop, reviewId, adminClient = null) {
     }).catch((err) => console.error("[Reviora] Metafields sync on delete error:", err));
   }
 
-  return { success: res.modifiedCount > 0 };
+  return { success: true, modifiedCount: res.modifiedCount };
 }
 
 /**
