@@ -5,6 +5,7 @@ import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import { authenticate } from "../shopify.server";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
+import process from "process";
 
 export const loader = async ({ request }) => {
   if (request.method === "OPTIONS") {
@@ -24,10 +25,24 @@ export const loader = async ({ request }) => {
     return null;
   }
 
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
   // eslint-disable-next-line no-undef
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY,
+    shop: session.shop,
+  };
+};
+
+export const meta = ({ data }) => {
+  const tags = [];
+  if (data?.apiKey) {
+    tags.push({ name: "shopify-api-key", content: data.apiKey });
+  }
+  if (data?.shop) {
+    tags.push({ name: "shopify-shop", content: data.shop });
+  }
+  return tags;
 };
 
 function PolarisLink({ children, url = "", external, ...rest }) {

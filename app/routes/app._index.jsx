@@ -73,12 +73,8 @@ export const loader = async ({ request }) => {
 
   // Redirect to dedicated /app/onboarding if onboarding requested or not completed
   if (forceOnboarding || !shopSettings?.onboardingCompleted) {
-    const params = new URLSearchParams();
-    if (isTestParam) params.set("test", "true");
-    const step = url.searchParams.get("step");
-    if (step) params.set("step", step);
-    const qs = params.toString();
-    return redirect(`/app/onboarding${qs ? `?${qs}` : ""}`);
+    const params = new URLSearchParams(url.searchParams);
+    return redirect(`/app/onboarding?${params.toString()}`);
   }
 
   const urlStep = parseInt(url.searchParams.get("step") || "0", 10);

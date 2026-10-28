@@ -1,19 +1,45 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useRouteError } from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useRouteError, useLoaderData } from "react-router";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import revioraStyles from "./reviora-admin.css?url";
 import { ZohoSalesIQ } from "./components/ZohoSalesIQ.jsx";
+import process from "process";
 
 export const links = () => [
   { rel: "stylesheet", href: polarisStyles },
   { rel: "stylesheet", href: revioraStyles },
 ];
 
+export const loader = async ({ request }) => {
+  const url = new URL(request.url);
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    shop: url.searchParams.get("shop") || "",
+  };
+};
+
+export const meta = ({ data }) => {
+  const tags = [];
+  if (data?.apiKey) {
+    tags.push({ name: "shopify-api-key", content: data.apiKey });
+  }
+  if (data?.shop) {
+    tags.push({ name: "shopify-shop", content: data.shop });
+  }
+  return tags;
+};
+
 export default function App() {
+  const data = useLoaderData();
+  const apiKey = data?.apiKey || "";
+  const shop = data?.shop || "";
+
   return (
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        {apiKey && <meta name="shopify-api-key" content={apiKey} />}
+        {shop && <meta name="shopify-shop" content={shop} />}
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link
           rel="stylesheet"

@@ -38,7 +38,11 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://reviora-ef66.onrender.com/api/auth" ]
+redirect_urls = [
+  "https://reviora-ef66.onrender.com/auth/callback",
+  "https://reviora-ef66.onrender.com/auth/shopify/callback",
+  "https://reviora-ef66.onrender.com/api/auth"
+]
 
 # =========================================================
 # Structured Product Metafield Definitions

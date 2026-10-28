@@ -324,7 +324,7 @@ export default function OnboardingPage() {
       { method: "POST" }
     );
 
-    navigate("/app", { replace: true });
+    navigate(`/app${typeof window !== "undefined" ? window.location.search : ""}`, { replace: true });
   };
 
   return (

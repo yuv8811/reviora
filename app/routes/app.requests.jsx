@@ -4,7 +4,8 @@ import { authenticate } from "../shopify.server.js";
 // Review Requests feature is temporarily commented out
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
-  return redirect("/app");
+  const url = new URL(request.url);
+  return redirect(`/app${url.search}`);
 };
 
 export default function RequestsPage() {
