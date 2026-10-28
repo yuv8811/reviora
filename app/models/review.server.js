@@ -1,5 +1,4 @@
 import { connectDB } from "../db.server.js";
-import { ShopSetting } from "./shopSetting.model.js";
 import { StoreReviews } from "./review.model.js";
 import { ReviewRequest } from "./reviewRequest.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.server.js";
@@ -65,40 +64,66 @@ export async function verifyCustomerByEmail(shop, email, adminClient = null) {
 }
 
 /**
- * Fetch or initialize default settings for a given shop
+ * Fetch or initialize default settings for a given shop using StoreReviews
  */
 export async function getShopSettings(shop) {
   await connectDB();
-  let settings = await ShopSetting.findOne({ shop });
+  let storeDoc = await StoreReviews.findOne({ shop });
 
-  // if (!settings) {
-  //   settings = await ShopSetting.create({
-  //     shop,
-  //     autoPublish: true,
-  //     minAutoPublishRating: 4,
-  //     primaryColor: "#FFB800",
-  //     badgeColor: "#10B981",
-  //     requestTimingDays: 7,
-  //     emailSubject: "How did you like your purchase?",
-  //     emailBody: "Thank you for your order! We would love to hear your feedback on your recent purchase.",
-  //     enableAiFeatures: true,
-  //   });
-  // }
+  if (!storeDoc) {
+    try {
+      storeDoc = await StoreReviews.create({
+        shop,
+        reviews: [],
+        plan: "FREE",
+        widgetSettings: {},
+        onboardingStep: 1,
+        onboardingCompleted: false,
+      });
+    } catch {
+      storeDoc = await StoreReviews.findOne({ shop });
+    }
+  }
 
-  return settings.toObject({ virtuals: true });
+  const doc = storeDoc?.toObject ? storeDoc.toObject({ virtuals: true }) : storeDoc || {};
+
+  return {
+    shop,
+    plan: doc.plan || "FREE",
+    widgetSettings: doc.widgetSettings || {},
+    onboardingStep: doc.onboardingStep || 1,
+    onboardingCompleted: Boolean(doc.onboardingCompleted),
+    primaryColor: doc.widgetSettings?.primaryColor || "#FFB800",
+    badgeColor: doc.widgetSettings?.badgeColor || "#10B981",
+    autoPublish: true,
+    minAutoPublishRating: 4,
+    enableAiFeatures: true,
+  };
 }
 
 /**
- * Update shop settings
+ * Update shop settings stored directly on StoreReviews
  */
 export async function updateShopSettings(shop, data) {
   await connectDB();
-  const updated = await ShopSetting.findOneAndUpdate(
+  const updated = await StoreReviews.findOneAndUpdate(
     { shop },
     { $set: data },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
-  return updated.toObject({ virtuals: true });
+  const doc = updated?.toObject ? updated.toObject({ virtuals: true }) : updated || {};
+  return {
+    shop,
+    plan: doc.plan || "FREE",
+    widgetSettings: doc.widgetSettings || {},
+    onboardingStep: doc.onboardingStep || 1,
+    onboardingCompleted: Boolean(doc.onboardingCompleted),
+    primaryColor: doc.widgetSettings?.primaryColor || "#FFB800",
+    badgeColor: doc.widgetSettings?.badgeColor || "#10B981",
+    autoPublish: true,
+    minAutoPublishRating: 4,
+    enableAiFeatures: true,
+  };
 }
 
 /**

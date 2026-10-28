@@ -2,7 +2,6 @@ import { authenticate, sessionStorage } from "../shopify.server";
 import { connectDB } from "../db.server";
 import { StoreReviews } from "../models/review.model";
 import { ReviewRequest } from "../models/reviewRequest.model";
-import { ShopSetting } from "../models/shopSetting.model";
 
 /**
  * Mandatory Compliance Webhook: shop/redact
@@ -23,10 +22,7 @@ export const action = async ({ request }) => {
     // 2. Delete all review requests
     await ReviewRequest.deleteMany({ shop });
 
-    // 3. Delete shop settings
-    await ShopSetting.deleteOne({ shop });
-
-    // 4. Delete sessions
+    // 3. Delete sessions
     if (sessionStorage) {
       const sessions = await sessionStorage.findSessionsByShop(shop);
       if (sessions && sessions.length > 0) {

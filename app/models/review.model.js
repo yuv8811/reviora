@@ -78,6 +78,10 @@ const StoreReviewsSchema = new mongoose.Schema(
   {
     shop: { type: String, required: true, unique: true, index: true },
     reviews: [SingleReviewSchema],
+    plan: { type: String, enum: ["FREE", "PRO"], default: "FREE" },
+    widgetSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
+    onboardingStep: { type: Number, default: 1 },
+    onboardingCompleted: { type: Boolean, default: false },
   },
   {
     timestamps: true,
