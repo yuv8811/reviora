@@ -3,13 +3,12 @@ import { useLoaderData, useSearchParams, useNavigation, useSubmit, useActionData
 import { authenticate } from "../shopify.server.js";
 import { widgetsConfig } from "../config/widgets.config.jsx";
 import { getShopSettings, updateShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
-import { getAppBillingDetails } from "../utils/billing.server.js";
 import { CheckCircle2, Lock, FileText, Layers } from "lucide-react";
 import { WidgetLivePreview } from "../components/WidgetLivePreview.jsx";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, session, billing } = await authenticate.admin(request);
   const shop = session.shop;
 
   // Real-time theme fetching via Admin GraphQL
@@ -59,15 +58,28 @@ export const loader = async ({ request }) => {
   }
 
   const shopSettings = await getShopSettings(shop);
-  const billingDetails = await getAppBillingDetails(admin, session);
-  const currentPlan = billingDetails.hasActivePayment ? "PRO" : "FREE";
 
-  if (shopSettings.plan !== currentPlan) {
-    try {
-      await updateShopSettings(shop, { plan: currentPlan });
-    } catch (error) {
-      console.warn("Failed to sync plan in widgets loader:", error?.message || error);
+  let currentPlan = shopSettings?.plan || "FREE";
+  try {
+    // eslint-disable-next-line no-undef
+    const isTest = process.env.NODE_ENV !== "production";
+    const billingCheck = await billing.check({
+      plans: ["Pro"],
+      isTest,
+    });
+    if (billingCheck.hasActivePayment) {
+      currentPlan = "PRO";
+      if (shopSettings.plan !== "PRO") {
+        await updateShopSettings(shop, { plan: "PRO" });
+      }
+    } else {
+      currentPlan = "FREE";
+      if (shopSettings.plan !== "FREE") {
+        await updateShopSettings(shop, { plan: "FREE" });
+      }
     }
+  } catch (error) {
+    console.warn("Billing check in widgets loader failed:", error?.message || error);
   }
 
   // Load live reviews and aggregates from store for real-time live preview
@@ -101,7 +113,7 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
+  const { session, billing } = await authenticate.admin(request);
   const formData = await request.formData();
   const widgetId = formData.get("widgetId");
 
@@ -112,8 +124,19 @@ export const action = async ({ request }) => {
   // Plan verification for PRO widgets
   const widgetDef = widgetsConfig.find((w) => w.id === widgetId);
   if (widgetDef?.isPremium) {
-    const billingDetails = await getAppBillingDetails(admin, session);
-    const isPro = billingDetails.hasActivePayment;
+    let isPro = false;
+    try {
+      // eslint-disable-next-line no-undef
+      const isTest = process.env.NODE_ENV !== "production";
+      const billingCheck = await billing.check({
+        plans: ["Pro"],
+        isTest,
+      });
+      isPro = billingCheck.hasActivePayment;
+    } catch {
+      const settings = await getShopSettings(session.shop);
+      isPro = settings?.plan === "PRO";
+    }
 
     if (!isPro) {
       return {

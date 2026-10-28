@@ -7,22 +7,25 @@ import { connectDB } from "../db.server.js";
 import { MetricCard } from "../components/MetricCard.jsx";
 import { StarRating } from "../components/StarRating.jsx";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
-import { getAppBillingDetails } from "../utils/billing.server.js";
 import { Star, MessageSquare, Clock, Send } from "lucide-react";
+import process from 'process'
 
 export const loader = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, billing } = await authenticate.admin(request);
   const shop = session.shop;
   const metrics = await getDashboardMetrics(shop);
   await connectDB();
   const storeDoc = await StoreReviews.findOne({ shop }).lean({ virtuals: true });
   const shopSettings = await getShopSettings(shop);
 
-  // Check live Shopify billing status via Shopify App Pricing
+  // Check live Shopify billing status for Pro plan
   let hasActivePayment = false;
   try {
-    const billingDetails = await getAppBillingDetails(admin, session);
-    hasActivePayment = billingDetails.hasActivePayment;
+    const billingCheck = await billing.check({
+      plans: ["Pro"],
+      isTest: process.env.NODE_ENV !== "production",
+    });
+    hasActivePayment = Boolean(billingCheck.hasActivePayment);
     if (hasActivePayment && shopSettings?.plan !== "PRO") {
       await updateShopSettings(shop, { plan: "PRO" });
     }
@@ -90,7 +93,7 @@ export const loader = async ({ request }) => {
     recentReviews,
     shopSettings,
     shop,
-    apiKey: process.env.SHOPIFY_API_KEY || "",
+    apiKey: process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416",
     defaultThemeId,
     forceOnboarding,
     initialStep,
@@ -131,11 +134,70 @@ export const action = async ({ request }) => {
 
   if (actionType === "subscribePro") {
     try {
-      const billingDetails = await getAppBillingDetails(admin, session);
-      return { confirmationUrl: billingDetails.pricingUrl };
+      const isTest = process.env.NODE_ENV !== "production";
+      const cleanShop = session.shop.replace(".myshopify.com", "");
+      const apiKey = process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416";
+      const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/onboarding?step=4${isTest ? "&test=true" : ""}`;
+
+      const response = await admin.graphql(
+        `#graphql
+        mutation AppSubscriptionCreate(
+          $name: String!
+          $returnUrl: URL!
+          $test: Boolean
+          $lineItems: [AppSubscriptionLineItemInput!]!
+        ) {
+          appSubscriptionCreate(
+            name: $name
+            returnUrl: $returnUrl
+            test: $test
+            lineItems: $lineItems
+          ) {
+            appSubscription {
+              id
+            }
+            confirmationUrl
+            userErrors {
+              field
+              message
+            }
+          }
+        }`,
+        {
+          variables: {
+            name: "Pro",
+            returnUrl,
+            test: isTest,
+            lineItems: [
+              {
+                plan: {
+                  appRecurringPricingDetails: {
+                    price: { amount: 4.99, currencyCode: "USD" },
+                    interval: "EVERY_30_DAYS",
+                  },
+                },
+              },
+            ],
+          },
+        }
+      );
+
+      const json = await response.json();
+      const userErrors = json?.data?.appSubscriptionCreate?.userErrors;
+      if (userErrors && userErrors.length > 0) {
+        console.error("Shopify billing userErrors in onboarding:", userErrors);
+        return { error: userErrors.map((e) => e.message).join(", ") };
+      }
+
+      const confirmationUrl = json?.data?.appSubscriptionCreate?.confirmationUrl;
+      if (confirmationUrl) {
+        return { confirmationUrl };
+      }
+
+      return { error: "No confirmation URL returned by Shopify." };
     } catch (err) {
       console.error("subscribePro error in onboarding:", err?.message || err);
-      return { error: err?.message || "Failed to load pricing page" };
+      return { error: err?.message || "Failed to initiate billing request" };
     }
   }
 

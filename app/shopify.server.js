@@ -3,6 +3,7 @@ import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
+  BillingInterval,
 } from "@shopify/shopify-app-react-router/server";
 import { MongoDBSessionStorage } from "@shopify/shopify-app-session-storage-mongodb";
 const MONGODB_URI =
@@ -12,6 +13,11 @@ export const PLAN_FREE = "Free";
 export const PLAN_PRO = "Pro";
 
 const shopify = shopifyApp({
+  billing: {
+    [PLAN_PRO]: {
+      lineItems: [{ amount: 4.99, currencyCode: "USD", interval: BillingInterval.Every30Days }],
+    },
+  },
   apiKey: process.env.SHOPIFY_API_KEY || "",
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.July26,

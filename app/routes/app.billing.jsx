@@ -1,87 +1,390 @@
-import { useEffect } from "react";
-import { useLoaderData } from "react-router";
+// Reviora Subscription & Billing Page - Clean Native Polaris Layout
+import { useState, useEffect } from "react";
+import process from "process";
+import { useLoaderData, useNavigation, useSubmit, useActionData, redirect } from "react-router";
 import { authenticate } from "../shopify.server.js";
-import { updateShopSettings } from "../models/review.server.js";
-import { getAppBillingDetails } from "../utils/billing.server.js";
+import { getShopSettings, updateShopSettings } from "../models/review.server.js";
+import { Check } from "lucide-react";
 
 const PLAN_FREE = "Free";
 const PLAN_PRO = "Pro";
 
 export const loader = async ({ request }) => {
-  const { admin, redirect, session } = await authenticate.admin(request);
+  const { billing, session } = await authenticate.admin(request);
   const shop = session.shop;
 
-  const billingDetails = await getAppBillingDetails(admin, session);
-  const hasActivePayment = billingDetails.hasActivePayment;
-  const currentPlan = hasActivePayment ? "PRO" : "FREE";
+  let hasActivePayment = false;
+  let current = null;
 
   try {
-    await updateShopSettings(shop, { plan: currentPlan });
-  } catch (err) {
-    console.error("Failed to sync shop settings plan:", err?.message || err);
-  }
+    const billingCheck = await billing.check({
+      plans: [PLAN_PRO],
+      isTest: process.env.NODE_ENV !== "production",
+    });
 
-  const url = new URL(request.url);
-  // Direct redirect out of the iframe to native Shopify Pricing Plans page
-  if (url.searchParams.get("stay") !== "true") {
-    return redirect(billingDetails.pricingUrl, { target: "_top" });
+    hasActivePayment = billingCheck.hasActivePayment;
+    current = billingCheck.appSubscriptions[0]?.name ?? null;
+
+    // Sync database plan state with live Shopify billing
+    const planInDb = hasActivePayment ? "PRO" : "FREE";
+    await updateShopSettings(shop, { plan: planInDb });
+  } catch (err) {
+    console.error("Billing check error:", err?.message || err);
+    try {
+      const settings = await getShopSettings(shop);
+      hasActivePayment = settings?.plan === "PRO";
+      current = hasActivePayment ? PLAN_PRO : null;
+    } catch (e) {
+      // ignore
+    }
   }
 
   return {
     shop,
     hasActivePayment,
-    current: billingDetails.activePlanName || (hasActivePayment ? PLAN_PRO : PLAN_FREE),
-    currentPlan,
-    pricingUrl: billingDetails.pricingUrl,
+    current,
+    currentPlan: hasActivePayment ? "PRO" : "FREE",
   };
 };
 
 export const action = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
-  const { pricingUrl } = await getAppBillingDetails(admin, session);
-  return { confirmationUrl: pricingUrl };
+  const { admin, billing, session } = await authenticate.admin(request);
+  const form = await request.formData();
+  const plan = form.get("plan");
+  const intent = form.get("intent");
+
+  // Handle cancellation / downgrade to Free
+  if (intent === "cancel" || plan === "FREE" || plan === PLAN_FREE) {
+    try {
+      const { appSubscriptions } = await billing.check({
+        plans: [PLAN_PRO],
+        isTest: process.env.NODE_ENV !== "production",
+      });
+
+      if (appSubscriptions && appSubscriptions.length > 0) {
+        await billing.cancel({
+          subscriptionId: appSubscriptions[0].id,
+          isTest: process.env.NODE_ENV !== "production",
+          prorate: true,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to cancel subscription via billing API:", err?.message || err);
+    }
+
+    try {
+      await updateShopSettings(session.shop, { plan: "FREE" });
+    } catch (err) {
+      console.error("Failed to update shop setting plan to FREE:", err?.message || err);
+    }
+
+    return redirect("/app/billing");
+  }
+
+  // Requesting Pro Plan: Create subscription charge via GraphQL & return confirmationUrl for top-level redirect
+  if (plan === PLAN_PRO || plan === "PRO") {
+    try {
+      const isTest = process.env.NODE_ENV !== "production";
+      const cleanShop = session.shop.replace(".myshopify.com", "");
+      const apiKey = process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416";
+      const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/billing`;
+
+      const response = await admin.graphql(
+        `#graphql
+        mutation AppSubscriptionCreate(
+          $name: String!
+          $returnUrl: URL!
+          $test: Boolean
+          $lineItems: [AppSubscriptionLineItemInput!]!
+        ) {
+          appSubscriptionCreate(
+            name: $name
+            returnUrl: $returnUrl
+            test: $test
+            lineItems: $lineItems
+          ) {
+            appSubscription {
+              id
+            }
+            confirmationUrl
+            userErrors {
+              field
+              message
+            }
+          }
+        }`,
+        {
+          variables: {
+            name: "Pro",
+            returnUrl,
+            test: isTest,
+            lineItems: [
+              {
+                plan: {
+                  appRecurringPricingDetails: {
+                    price: { amount: 4.99, currencyCode: "USD" },
+                    interval: "EVERY_30_DAYS",
+                  },
+                },
+              },
+            ],
+          },
+        }
+      );
+
+      const json = await response.json();
+      const userErrors = json?.data?.appSubscriptionCreate?.userErrors;
+      if (userErrors && userErrors.length > 0) {
+        console.error("Shopify billing userErrors:", userErrors);
+        return { error: userErrors.map((e) => e.message).join(", ") };
+      }
+
+      const confirmationUrl = json?.data?.appSubscriptionCreate?.confirmationUrl;
+      if (confirmationUrl) {
+        return { confirmationUrl };
+      }
+
+      return { error: "No confirmation URL returned by Shopify." };
+    } catch (err) {
+      console.error("Billing request error:", err?.message || err);
+      return { error: err?.message || "Failed to initiate billing request with Shopify." };
+    }
+  }
+
+  return redirect("/app/billing");
 };
 
 export default function BillingPage() {
-  const data = useLoaderData();
-  const pricingUrl = data?.pricingUrl;
-  const hasActivePayment = data?.hasActivePayment;
+  const { currentPlan, hasActivePayment } = useLoaderData();
+  const actionData = useActionData();
+  const navigation = useNavigation();
+  const submit = useSubmit();
 
-  // Auto-redirect to native Shopify plans page if loader redirect didn't break out
+  const isSubmitting = navigation.state === "submitting" || Boolean(actionData?.confirmationUrl);
+  const activePlanKey = hasActivePayment ? "PRO" : currentPlan;
+
+  const [selectedPlanForModal, setSelectedPlanForModal] = useState(null);
+
+  // Directly navigate the top parent window out of the iframe to Shopify's confirmation page
   useEffect(() => {
-    if (pricingUrl) {
+    if (actionData?.confirmationUrl) {
       if (window.shopify?.open) {
-        window.shopify.open(pricingUrl, "_top");
+        window.shopify.open(actionData.confirmationUrl, "_top");
       } else {
-        window.open(pricingUrl, "_top");
+        window.open(actionData.confirmationUrl, "_top");
       }
     }
-  }, [pricingUrl]);
+  }, [actionData?.confirmationUrl]);
 
-  const handleOpenPricing = () => {
-    if (pricingUrl) {
-      if (window.shopify?.open) {
-        window.shopify.open(pricingUrl, "_top");
-      } else {
-        window.open(pricingUrl, "_top");
-      }
+  const handlePlanSelect = (planKey) => {
+    if (planKey === activePlanKey) return;
+    setSelectedPlanForModal(planKey);
+    if (window.shopify?.modal) {
+      window.shopify.modal.show("billing-confirm-modal");
+    } else {
+      document.getElementById("billing-confirm-modal")?.showOverlay();
     }
   };
 
+  const closeModal = () => {
+    if (window.shopify?.modal) {
+      window.shopify.modal.hide("billing-confirm-modal");
+    } else {
+      document.getElementById("billing-confirm-modal")?.hideOverlay();
+    }
+    setSelectedPlanForModal(null);
+  };
+
+  const handleConfirmPlanChange = () => {
+    if (!selectedPlanForModal) return;
+    const formData = new FormData();
+    if (selectedPlanForModal === "FREE") {
+      formData.append("intent", "cancel");
+      formData.append("plan", "FREE");
+    } else {
+      formData.append("plan", "PRO");
+    }
+    submit(formData, { method: "post" });
+    closeModal();
+  };
+
+
+  const freeFeatures = [
+    "8 Core widgets (Reviews, Star Badge, Q&A, Carousels)",
+    "Storefront review collection & Write a Review form",
+    "Full moderation inbox (Approve, Reject, Spam filters)",
+    "Standard email & documentation support",
+  ];
+
+  const proFeatures = [
+    "Automated & manual review request emails by order",
+    "4 Exclusive widgets: Video Reels, UGC Wall, Popups & Floating Tab",
+    "Customer photo & video review uploads with CDN hosting",
+    "Google Shopping & Rich Snippets (Schema.org JSON-LD)",
+    "Priority 24/7 Live Chat & Email Support",
+  ];
+
   return (
-    <s-page heading="Subscription & Billing" inlineSize="small">
-      <s-section>
-        <s-stack gap="base" alignItems="center">
-          <s-heading>Redirecting to Shopify Plan Selection...</s-heading>
+    <s-page heading="Subscription & Plans" inlineSize="small">
+      <s-stack gap="base">
+
+        {actionData?.error && (
+          <s-banner tone="critical" heading="Billing Error">
+            <s-paragraph>{actionData.error}</s-paragraph>
+          </s-banner>
+        )}
+
+        {/* 2-Column Plan Grid */}
+        <s-grid gridTemplateColumns="1fr 1fr" gap="base">
+          {/* Free Plan Card */}
+          <s-section>
+            <s-stack gap="base">
+              <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+                <s-heading>Free</s-heading>
+                {activePlanKey === "FREE" && <s-badge tone="info">Active</s-badge>}
+              </s-stack>
+
+              <s-paragraph color="subdued">
+                Essential review collection and 8 standard widgets for stores getting started.
+              </s-paragraph>
+
+              <s-stack direction="inline" gap="extra-tight" alignItems="baseline">
+                <h1 style={{ fontSize: "24px", fontWeight: "bold" }}>$0</h1>
+                <s-text color="subdued">/ forever</s-text>
+              </s-stack>
+
+              <s-button
+                variant="secondary"
+                disabled={activePlanKey === "FREE" || isSubmitting}
+                loading={isSubmitting && selectedPlanForModal === "FREE"}
+                onClick={() => handlePlanSelect("FREE")}
+              >
+                {activePlanKey === "FREE" ? "Current Plan" : "Downgrade to Free"}
+              </s-button>
+
+              <s-divider></s-divider>
+
+              <s-stack gap="small">
+                <s-text type="strong">What&apos;s included:</s-text>
+
+                <s-stack gap="small">
+                  {freeFeatures.map((feat, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "8px",
+                      }}
+                    >
+                      <span style={{ flexShrink: 0, marginTop: "2px", display: "inline-flex" }}>
+                        <Check size={16} color="#10b981" strokeWidth={2.5} />
+                      </span>
+                      <s-text>{feat}</s-text>
+                    </div>
+                  ))}
+                </s-stack>
+              </s-stack>
+            </s-stack>
+          </s-section>
+
+          {/* Pro Plan Card */}
+          <div className={activePlanKey !== "PRO" ? "reviora-plan-card-featured" : ""}>
+            <s-section>
+              <s-stack gap="base">
+                <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+                  <s-heading>Pro</s-heading>
+                  {activePlanKey === "PRO" ? (
+                    <s-badge tone="success">Active</s-badge>
+                  ) : (
+                    <s-badge tone="info">Recommended</s-badge>
+                  )}
+                </s-stack>
+
+                <s-paragraph color="subdued">
+                  Automated review requests, 4 premium widgets, photo &amp; video reviews.
+                </s-paragraph>
+
+                <s-stack direction="inline" gap="extra-tight" alignItems="baseline">
+                  <h1 style={{ fontSize: "24px", fontWeight: "bold" }}>$4.99</h1>
+                  <s-text color="subdued">/ month</s-text>
+                </s-stack>
+
+                <s-button
+                  variant={activePlanKey === "PRO" ? "secondary" : "primary"}
+                  disabled={activePlanKey === "PRO" || isSubmitting}
+                  loading={isSubmitting && selectedPlanForModal === "PRO"}
+                  onClick={() => handlePlanSelect("PRO")}
+                >
+                  {activePlanKey === "PRO" ? "Current Plan" : "Upgrade to Pro"}
+                </s-button>
+
+                <s-divider></s-divider>
+
+                <s-stack gap="small">
+                  <s-text type="strong">Everything in Free, plus:</s-text>
+
+                  <s-stack gap="small">
+                    {proFeatures.map((feat, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "8px",
+                        }}
+                      >
+                        <span style={{ flexShrink: 0, marginTop: "2px", display: "inline-flex" }}>
+                          <Check size={16} color="#10b981" strokeWidth={2.5} />
+                        </span>
+                        <s-text>{feat}</s-text>
+                      </div>
+                    ))}
+                  </s-stack>
+                </s-stack>
+              </s-stack>
+            </s-section>
+          </div>
+        </s-grid>
+
+      </s-stack>
+
+      {/* Confirmation Modal */}
+      <s-modal
+        id="billing-confirm-modal"
+        heading={selectedPlanForModal === "PRO" ? "Upgrade to Pro Plan?" : "Downgrade to Free Plan?"}
+      >
+        <s-stack gap="base">
+          <s-banner tone="info">
+            <s-paragraph>
+              {selectedPlanForModal === "PRO"
+                ? "You will be redirected to Shopify to approve the $4.99/month recurring subscription for Reviora Pro."
+                : "Downgrading to Free will cancel your paid recurring charge. Any reviews previously collected remain safe on your store."}
+            </s-paragraph>
+          </s-banner>
           <s-paragraph color="subdued">
-            You are currently on the <strong>{hasActivePayment ? "Pro Plan ($4.99/mo)" : "Free Plan ($0/mo)"}</strong>.
-            All plan upgrades, downgrades, and billing changes are managed directly through Shopify.
+            Subscription changes take effect immediately on your Shopify billing account.
           </s-paragraph>
-          <s-button variant="primary" onClick={handleOpenPricing}>
-            Open Shopify Plans &amp; Billing ↗
-          </s-button>
         </s-stack>
-      </s-section>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          loading={isSubmitting}
+          onClick={handleConfirmPlanChange}
+        >
+          {selectedPlanForModal === "PRO" ? "Confirm & Continue to Shopify" : "Confirm Downgrade"}
+        </s-button>
+        <s-button
+          slot="secondary-actions"
+          disabled={isSubmitting}
+          commandFor="billing-confirm-modal"
+          command="--hide"
+          onClick={closeModal}
+        >
+          Cancel
+        </s-button>
+      </s-modal>
+
     </s-page>
   );
 }
