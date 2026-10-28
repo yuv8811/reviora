@@ -1,8 +1,6 @@
-import { Outlet, useLoaderData, useRouteError, isRouteErrorResponse, Link, useNavigation } from "react-router";
+import { Outlet, useLoaderData, useRouteError, isRouteErrorResponse, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
-import enTranslations from "@shopify/polaris/locales/en.json";
 import { authenticate } from "../shopify.server";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
 import process from "process";
@@ -45,22 +43,6 @@ export const meta = ({ data }) => {
   return tags;
 };
 
-function PolarisLink({ children, url = "", external, ...rest }) {
-  if (external || /^https?:\/\//.test(url)) {
-    return (
-      <a href={url} target="_blank" rel="noopener noreferrer" {...rest}>
-        {children}
-      </a>
-    );
-  }
-
-  return (
-    <Link to={url} {...rest}>
-      {children}
-    </Link>
-  );
-}
-
 export default function App() {
   const { apiKey } = useLoaderData();
   const navigation = useNavigation();
@@ -70,23 +52,21 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <PolarisAppProvider i18n={enTranslations} linkComponent={PolarisLink}>
-        <s-app-nav>
-          <s-link href="/app">Dashboard</s-link>
-          <s-link href="/app/reviews">Moderation Inbox</s-link>
-          {/* <s-link href="/app/requests">Requests</s-link> */}
-          <s-link href="/app/import">Import &amp; Export</s-link>
-          <s-link href="/app/widgets">Widgets</s-link>
-          <s-link href="/app/billing">Billing</s-link>
-        </s-app-nav>
-        {isLoading ? (
-          <PageSkeleton />
-        ) : (
-          <div>
-            <Outlet />
-          </div>
-        )}
-      </PolarisAppProvider>
+      <s-app-nav>
+        <s-link href="/app">Dashboard</s-link>
+        <s-link href="/app/reviews">Moderation Inbox</s-link>
+        {/* <s-link href="/app/requests">Requests</s-link> */}
+        <s-link href="/app/import">Import &amp; Export</s-link>
+        <s-link href="/app/widgets">Widgets</s-link>
+        <s-link href="/app/billing">Billing</s-link>
+      </s-app-nav>
+      {isLoading ? (
+        <PageSkeleton />
+      ) : (
+        <div>
+          <Outlet />
+        </div>
+      )}
     </AppProvider>
   );
 }

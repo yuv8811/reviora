@@ -1,18 +1,16 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useRouteError, useLoaderData } from "react-router";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import revioraStyles from "./reviora-admin.css?url";
 import { ZohoSalesIQ } from "./components/ZohoSalesIQ.jsx";
 import process from "process";
 
 export const links = () => [
-  { rel: "stylesheet", href: polarisStyles },
   { rel: "stylesheet", href: revioraStyles },
 ];
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
   return {
-    apiKey: process.env.SHOPIFY_API_KEY || "",
+    apiKey: process.env.SHOPIFY_API_KEY,
     shop: url.searchParams.get("shop") || "",
   };
 };
@@ -30,8 +28,8 @@ export const meta = ({ data }) => {
 
 export default function App() {
   const data = useLoaderData();
-  const apiKey = data?.apiKey || "";
-  const shop = data?.shop || "";
+  const apiKey = data?.apiKey;
+  const shop = data?.shop;
 
   return (
     <html lang="en">
