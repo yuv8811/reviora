@@ -7,7 +7,7 @@ import { connectDB } from "../db.server.js";
 import { MetricCard } from "../components/MetricCard.jsx";
 import { StarRating } from "../components/StarRating.jsx";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
-import { Star, MessageSquare, Clock, Send } from "lucide-react";
+import { Star, MessageSquare, Clock } from "lucide-react";
 import process from 'process'
 
 export const loader = async ({ request }) => {
