@@ -397,13 +397,13 @@ export default function DashboardPage() {
             tone={metrics.pendingReviews > 0 ? "warning" : "success"}
           />
 
-          <MetricCard
+          {/* <MetricCard
             label="Review Requests Sent"
             value={metrics.totalRequests}
             subtext="Automated fulfillment notifications"
             icon={Send}
             tone="default"
-          />
+          /> */}
         </s-grid>
 
         {/* Recent Reviews Activity Section */}

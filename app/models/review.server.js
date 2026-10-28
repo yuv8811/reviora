@@ -71,19 +71,19 @@ export async function getShopSettings(shop) {
   await connectDB();
   let settings = await ShopSetting.findOne({ shop });
 
-  if (!settings) {
-    settings = await ShopSetting.create({
-      shop,
-      autoPublish: true,
-      minAutoPublishRating: 4,
-      primaryColor: "#FFB800",
-      badgeColor: "#10B981",
-      requestTimingDays: 7,
-      emailSubject: "How did you like your purchase?",
-      emailBody: "Thank you for your order! We would love to hear your feedback on your recent purchase.",
-      enableAiFeatures: true,
-    });
-  }
+  // if (!settings) {
+  //   settings = await ShopSetting.create({
+  //     shop,
+  //     autoPublish: true,
+  //     minAutoPublishRating: 4,
+  //     primaryColor: "#FFB800",
+  //     badgeColor: "#10B981",
+  //     requestTimingDays: 7,
+  //     emailSubject: "How did you like your purchase?",
+  //     emailBody: "Thank you for your order! We would love to hear your feedback on your recent purchase.",
+  //     enableAiFeatures: true,
+  //   });
+  // }
 
   return settings.toObject({ virtuals: true });
 }

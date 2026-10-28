@@ -59,7 +59,7 @@ export default function App() {
         <s-app-nav>
           <s-link href="/app">Dashboard</s-link>
           <s-link href="/app/reviews">Moderation Inbox</s-link>
-          <s-link href="/app/requests">Requests</s-link>
+          {/* <s-link href="/app/requests">Requests</s-link> */}
           <s-link href="/app/import">Import &amp; Export</s-link>
           <s-link href="/app/widgets">Widgets</s-link>
           <s-link href="/app/billing">Billing</s-link>

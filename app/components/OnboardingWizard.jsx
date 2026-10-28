@@ -554,14 +554,14 @@ export function OnboardingWizard({
                 <div style={{ width: "36px", height: "36px", borderRadius: "8px", backgroundColor: "#FFFFFF", border: "1px solid #E1E3E5", display: "flex", alignItems: "center", justifyContent: "center", color: "#008060", flexShrink: 0 }}>
                   <Send size={18} />
                 </div>
-                <div>
+                {/* <div>
                   <div style={{ fontSize: "14px", fontWeight: "600", color: "#202223", marginBottom: "2px" }}>
                     Automated Review Requests
                   </div>
                   <div style={{ fontSize: "13px", color: "#6D7175", lineHeight: 1.4 }}>
                     Automatically send scheduled post-purchase emails to buyers after order fulfillment with 1-click review submission.
                   </div>
-                </div>
+                </div> */}
               </div>
 
               {/* Feature 4 */}
