@@ -39,7 +39,7 @@ async function verifyAppEmbedInTheme(admin, session) {
               nodes {
                 filename
                 body {
-                  ... on ThemeFileBodyText {
+                  ... on OnlineStoreThemeFileBodyText {
                     content
                   }
                 }
