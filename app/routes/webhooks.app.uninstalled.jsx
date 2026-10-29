@@ -1,7 +1,19 @@
 import { authenticate, sessionStorage } from "../shopify.server";
 
 export const action = async ({ request }) => {
-  const { shop, topic } = await authenticate.webhook(request);
+  let shop, topic;
+
+  try {
+    const authResult = await authenticate.webhook(request);
+    shop = authResult.shop;
+    topic = authResult.topic;
+  } catch (error) {
+    if (error instanceof Response && (error.status === 401 || error.status === 400)) {
+      throw error;
+    }
+    console.error("Error authenticating app/uninstalled webhook:", error);
+    return new Response(null, { status: 200 });
+  }
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
@@ -18,5 +30,5 @@ export const action = async ({ request }) => {
     console.error(`Error deleting sessions for uninstalled shop ${shop}:`, error);
   }
 
-  return new Response();
+  return new Response(null, { status: 200 });
 };

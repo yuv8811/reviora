@@ -9,7 +9,22 @@ import { ReviewRequest } from "../models/reviewRequest.model";
  * All data related to the merchant shop must be permanently erased.
  */
 export const action = async ({ request }) => {
-  const { shop, topic } = await authenticate.webhook(request);
+  let shop, topic;
+
+  try {
+    const authResult = await authenticate.webhook(request);
+    shop = authResult.shop;
+    topic = authResult.topic;
+  } catch (error) {
+    if (error instanceof Response && (error.status === 401 || error.status === 400)) {
+      throw error;
+    }
+    console.error("[Compliance Error] shop/redact authentication error:", error);
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   console.log(`[Compliance] Received ${topic} for shop: ${shop}. Erasing all shop data.`);
 

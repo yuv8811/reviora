@@ -8,7 +8,23 @@ import { ReviewRequest } from "../models/reviewRequest.model";
  * Triggered when a customer requests a copy of their data stored by your app.
  */
 export const action = async ({ request }) => {
-  const { shop, topic, payload } = await authenticate.webhook(request);
+  let shop, topic, payload;
+
+  try {
+    const authResult = await authenticate.webhook(request);
+    shop = authResult.shop;
+    topic = authResult.topic;
+    payload = authResult.payload;
+  } catch (error) {
+    if (error instanceof Response && (error.status === 401 || error.status === 400)) {
+      throw error;
+    }
+    console.error("[Compliance Error] customers/data_request authentication error:", error);
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   console.log(`[Compliance] Received ${topic} for shop: ${shop}`);
 
@@ -39,7 +55,7 @@ export const action = async ({ request }) => {
     console.error("[Compliance Error] customers/data_request handling error:", error);
   }
 
-  // Must always respond with 200 series status code within 30 days
+  // Must always respond with 200 series status code
   return new Response(JSON.stringify({ received: true }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
