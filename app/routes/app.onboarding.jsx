@@ -3,6 +3,7 @@ import { authenticate } from "../shopify.server.js";
 import { getShopSettings, updateShopSettings } from "../models/review.server.js";
 import { connectDB } from "../db.server.js";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
+import { checkProPlanActive, cancelProSubscription } from "../utils/billing.server.js";
 import process from "process";
 
 async function verifyAppEmbedInTheme(admin, session) {
@@ -81,7 +82,31 @@ async function verifyAppEmbedInTheme(admin, session) {
       return { verified: false, themeName, themeId: themeNumericId, error: "Could not read theme settings" };
     }
 
-    const parsed = typeof settingsContent === "string" ? JSON.parse(settingsContent) : settingsContent;
+    let parsed = null;
+    if (typeof settingsContent === "object" && settingsContent !== null) {
+      parsed = settingsContent;
+    } else if (typeof settingsContent === "string") {
+      try {
+        parsed = JSON.parse(settingsContent);
+      } catch {
+        // Shopify themes often prepend auto-generated comment headers (e.g. /* ... */) to config/settings_data.json
+        const firstBrace = settingsContent.indexOf("{");
+        const lastBrace = settingsContent.lastIndexOf("}");
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          const jsonOnly = settingsContent.slice(firstBrace, lastBrace + 1);
+          try {
+            parsed = JSON.parse(jsonOnly);
+          } catch {
+            const stripped = jsonOnly.replace(/\/\*[\s\S]*?\*\//g, "").trim();
+            parsed = JSON.parse(stripped);
+          }
+        } else {
+          const stripped = settingsContent.replace(/\/\*[\s\S]*?\*\//g, "").trim();
+          parsed = JSON.parse(stripped);
+        }
+      }
+    }
+
     const blocks = {
       ...(parsed?.current?.blocks || {}),
       ...(parsed?.blocks || {}),
@@ -125,20 +150,9 @@ export const loader = async ({ request }) => {
     url.searchParams.get("test") === "true" ||
     url.searchParams.get("test") === "1";
 
-  // Check live Shopify billing status for Pro plan
-  let hasActivePayment = false;
-  try {
-    const billingCheck = await billing.check({
-      plans: ["Pro"],
-      isTest: isTest || process.env.NODE_ENV !== "production",
-    });
-    hasActivePayment = Boolean(billingCheck.hasActivePayment);
-    if (hasActivePayment && shopSettings?.plan !== "PRO") {
-      await updateShopSettings(shop, { plan: "PRO" });
-    }
-  } catch (err) {
-    hasActivePayment = shopSettings?.plan === "PRO";
-  }
+  // Check live Shopify billing status for Pro plan (accurately detects both test & live charges)
+  const billingResult = await checkProPlanActive({ admin, billing, shop });
+  const hasActivePayment = billingResult.hasActivePayment;
 
   let defaultThemeId = "current";
   try {
@@ -193,12 +207,17 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, billing } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = formData.get("actionType");
 
   if (actionType === "verifyTheme") {
     const result = await verifyAppEmbedInTheme(admin, session);
+    return result;
+  }
+
+  if (actionType === "downgradeFree") {
+    const result = await cancelProSubscription({ admin, billing, shop: session.shop });
     return result;
   }
 
@@ -308,17 +327,19 @@ export const action = async ({ request }) => {
   }
 
   if (actionType === "saveOnboardingStep") {
-    const isTest = formData.get("isTest") === "true";
     const step = parseInt(formData.get("step") || "1", 10);
     const plan = formData.get("plan");
     const primaryColor = formData.get("primaryColor");
-    if (!isTest) {
-      const update = { onboardingStep: step };
-      if (plan) update.plan = plan;
-      if (primaryColor) update.primaryColor = primaryColor;
-      await updateShopSettings(session.shop, update);
+    const update = { onboardingStep: step };
+    if (plan) update.plan = plan;
+    if (primaryColor) update.primaryColor = primaryColor;
+    await updateShopSettings(session.shop, update);
+
+    if (plan === "FREE") {
+      await cancelProSubscription({ admin, billing, shop: session.shop });
     }
-    return { success: true, onboardingStep: step };
+
+    return { success: true, onboardingStep: step, plan, hasActivePayment: plan === "PRO" };
   }
 
   if (actionType === "completeOnboarding") {

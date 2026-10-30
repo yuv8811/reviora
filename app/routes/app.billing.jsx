@@ -3,81 +3,35 @@ import { useState, useEffect } from "react";
 import process from "process";
 import { useLoaderData, useNavigation, useSubmit, useActionData, redirect } from "react-router";
 import { authenticate } from "../shopify.server.js";
-import { getShopSettings, updateShopSettings } from "../models/review.server.js";
+import { checkProPlanActive, cancelProSubscription } from "../utils/billing.server.js";
 import { Check } from "lucide-react";
 
 const PLAN_FREE = "Free";
 const PLAN_PRO = "Pro";
 
 export const loader = async ({ request }) => {
-  const { billing, session } = await authenticate.admin(request);
+  const { admin, billing, session } = await authenticate.admin(request);
   const shop = session.shop;
 
-  let hasActivePayment = false;
-  let current = null;
-
-  try {
-    const billingCheck = await billing.check({
-      plans: [PLAN_PRO],
-      isTest: process.env.NODE_ENV !== "production",
-    });
-
-    hasActivePayment = billingCheck.hasActivePayment;
-    current = billingCheck.appSubscriptions[0]?.name ?? null;
-
-    // Sync database plan state with live Shopify billing
-    const planInDb = hasActivePayment ? "PRO" : "FREE";
-    await updateShopSettings(shop, { plan: planInDb });
-  } catch (err) {
-    console.error("Billing check error:", err?.message || err);
-    try {
-      const settings = await getShopSettings(shop);
-      hasActivePayment = settings?.plan === "PRO";
-      current = hasActivePayment ? PLAN_PRO : null;
-    } catch (e) {
-      // ignore
-    }
-  }
+  const result = await checkProPlanActive({ admin, billing, shop });
 
   return {
     shop,
-    hasActivePayment,
-    current,
-    currentPlan: hasActivePayment ? "PRO" : "FREE",
+    hasActivePayment: result.hasActivePayment,
+    current: result.activeSubscriptionName,
+    currentPlan: result.currentPlan,
   };
 };
 
 export const action = async ({ request }) => {
   const { admin, billing, session } = await authenticate.admin(request);
-  const form = await request.formData();
-  const plan = form.get("plan");
-  const intent = form.get("intent");
+  const formData = await request.formData();
+  const plan = formData.get("plan");
+  const intent = formData.get("intent");
 
   // Handle cancellation / downgrade to Free
   if (intent === "cancel" || plan === "FREE" || plan === PLAN_FREE) {
-    try {
-      const { appSubscriptions } = await billing.check({
-        plans: [PLAN_PRO],
-        isTest: process.env.NODE_ENV !== "production",
-      });
-
-      if (appSubscriptions && appSubscriptions.length > 0) {
-        await billing.cancel({
-          subscriptionId: appSubscriptions[0].id,
-          isTest: process.env.NODE_ENV !== "production",
-          prorate: true,
-        });
-      }
-    } catch (err) {
-      console.error("Failed to cancel subscription via billing API:", err?.message || err);
-    }
-
-    try {
-      await updateShopSettings(session.shop, { plan: "FREE" });
-    } catch (err) {
-      console.error("Failed to update shop setting plan to FREE:", err?.message || err);
-    }
-
+    await cancelProSubscription({ admin, billing, shop: session.shop });
     return redirect("/app/billing");
   }
 

@@ -1,8 +1,10 @@
-import { Outlet, useLoaderData, useRouteError, isRouteErrorResponse, useNavigation } from "react-router";
+import { Outlet, useLoaderData, useRouteError, isRouteErrorResponse, useNavigation, useLocation, redirect } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
+import { connectDB } from "../db.server.js";
+import { getShopSettings } from "../models/review.server.js";
 import process from "process";
 
 export const loader = async ({ request }) => {
@@ -25,10 +27,21 @@ export const loader = async ({ request }) => {
 
   const { session } = await authenticate.admin(request);
 
+  await connectDB();
+  const shopSettings = await getShopSettings(session.shop);
+  const isOnboardingCompleted = Boolean(shopSettings?.onboardingCompleted);
+
+  // If onboarding is in progress and merchant visits another page, redirect to onboarding wizard
+  if (!isOnboardingCompleted && !url.pathname.startsWith("/app/onboarding")) {
+    const params = new URLSearchParams(url.searchParams);
+    return redirect(`/app/onboarding?${params.toString()}`);
+  }
+
   // eslint-disable-next-line no-undef
   return {
     apiKey: process.env.SHOPIFY_API_KEY,
     shop: session.shop,
+    onboardingCompleted: isOnboardingCompleted,
   };
 };
 
@@ -44,22 +57,34 @@ export const meta = ({ data }) => {
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData();
+  const data = useLoaderData();
   const navigation = useNavigation();
+  const location = useLocation();
+
+  const apiKey = data?.apiKey;
+  const onboardingCompleted = data?.onboardingCompleted;
 
   // Immediate skeleton display whenever page is loading
   const isLoading = navigation.state === "loading";
 
+  // Hide all navigations when onboarding is in progress
+  const isOnboardingInProgress =
+    !onboardingCompleted ||
+    location.pathname.startsWith("/app/onboarding") ||
+    location.search.includes("onboarding=true");
+
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <s-app-nav>
-        <s-link href="/app">Dashboard</s-link>
-        <s-link href="/app/reviews">Moderation Inbox</s-link>
-        {/* <s-link href="/app/requests">Requests</s-link> */}
-        <s-link href="/app/import">Import &amp; Export</s-link>
-        <s-link href="/app/widgets">Widgets</s-link>
-        <s-link href="/app/billing">Billing</s-link>
-      </s-app-nav>
+      {!isOnboardingInProgress && (
+        <s-app-nav>
+          <s-link href="/app">Dashboard</s-link>
+          <s-link href="/app/reviews">Moderation Inbox</s-link>
+          {/* <s-link href="/app/requests">Requests</s-link> */}
+          <s-link href="/app/import">Import &amp; Export</s-link>
+          <s-link href="/app/widgets">Widgets</s-link>
+          <s-link href="/app/billing">Billing</s-link>
+        </s-app-nav>
+      )}
       {isLoading ? (
         <PageSkeleton />
       ) : (

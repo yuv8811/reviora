@@ -75,6 +75,9 @@ export function OnboardingWizard({
     return "FREE";
   });
 
+  const [activePayment, setActivePayment] = useState(Boolean(hasActivePayment));
+  const [activePlan, setActivePlan] = useState(currentPlan || (hasActivePayment ? "PRO" : "FREE"));
+
   const [subscribeError, setSubscribeError] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
   const [themeVerified, setThemeVerified] = useState(Boolean(initialThemeVerified));
@@ -146,9 +149,23 @@ export function OnboardingWizard({
   }, [hasActivePayment, isTest]);
 
   const isSubscribingPro =
-    billingFetcher.state === "submitting" ||
-    billingFetcher.state === "loading" ||
+    (billingFetcher.state === "submitting" && billingFetcher.formData?.get("actionType") === "subscribePro") ||
+    (billingFetcher.state === "loading" && billingFetcher.formData?.get("actionType") === "subscribePro") ||
     Boolean(billingFetcher.data?.confirmationUrl);
+
+  const isDowngrading =
+    billingFetcher.state === "submitting" &&
+    billingFetcher.formData?.get("actionType") === "downgradeFree";
+
+  useEffect(() => {
+    if (billingFetcher.data) {
+      if (billingFetcher.data.plan) {
+        setSelectedPlan(billingFetcher.data.plan);
+        setActivePlan(billingFetcher.data.plan);
+        setActivePayment(Boolean(billingFetcher.data.hasActivePayment));
+      }
+    }
+  }, [billingFetcher.data]);
 
   const isVerifying =
     themeFetcher.state === "submitting" ||
@@ -254,16 +271,7 @@ export function OnboardingWizard({
   ];
 
   const resolvedApiKey = apiKey || "f79eb2d3832f37be2bb3a5c7c1efd416";
-  const themeEditorUrl = `https://${shop}/admin/themes/${defaultThemeId}/editor?template=product&addAppBlockId=${resolvedApiKey}/review_widget&target=mainSection`;
   const appEmbedUrl = `https://${shop}/admin/themes/${defaultThemeId}/editor?context=apps&activateAppId=${resolvedApiKey}/app_embed`;
-
-  const handleOpenThemeEditor = () => {
-    if (window.shopify?.open) {
-      window.shopify.open(themeEditorUrl, "_blank");
-    } else {
-      window.open(themeEditorUrl, "_blank", "noopener,noreferrer");
-    }
-  };
 
   const handleOpenAppEmbed = () => {
     if (window.shopify?.open) {
@@ -284,6 +292,24 @@ export function OnboardingWizard({
     setSubscribeError("");
     billingFetcher.submit(
       { actionType: "subscribePro", isTest: isTest ? "true" : "false" },
+      { method: "POST" }
+    );
+  };
+
+  const handleDowngradeToFree = () => {
+    setSubscribeError("");
+    setSelectedPlan("FREE");
+    setActivePlan("FREE");
+    setActivePayment(false);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`reviora_selected_plan_${shop}`, "FREE");
+      } catch (e) {
+        // ignore
+      }
+    }
+    billingFetcher.submit(
+      { actionType: "downgradeFree" },
       { method: "POST" }
     );
   };
@@ -923,8 +949,8 @@ export function OnboardingWizard({
             </div>
 
             {(() => {
-              const activeChoice = selectedPlan || (hasActivePayment ? "PRO" : "FREE");
-              const isFreeSelected = activeChoice === "FREE";
+              const isAlreadyPro = Boolean(activePayment || activePlan === "PRO");
+              const isFreeSelected = selectedPlan === "FREE" || (!selectedPlan && !isAlreadyPro);
               const isProSelected = !isFreeSelected;
 
               return (
@@ -981,7 +1007,8 @@ export function OnboardingWizard({
 
                     <button
                       type="button"
-                      onClick={() => handleSelectPlan("FREE")}
+                      disabled={isDowngrading || isSubscribingPro}
+                      onClick={isAlreadyPro && !isFreeSelected ? handleDowngradeToFree : () => handleSelectPlan("FREE")}
                       style={{
                         marginTop: "18px",
                         width: "100%",
@@ -992,10 +1019,14 @@ export function OnboardingWizard({
                         color: isFreeSelected ? "#FFFFFF" : "#202223",
                         fontSize: "12px",
                         fontWeight: "600",
-                        cursor: isFreeSelected ? "default" : "pointer",
+                        cursor: isFreeSelected ? "default" : isDowngrading ? "not-allowed" : "pointer",
                       }}
                     >
-                      {isFreeSelected ? "✓ Active (Free Plan)" : "Switch to Free Plan"}
+                      {isFreeSelected
+                        ? "✓ Active (Free Plan)"
+                        : isAlreadyPro
+                        ? (isDowngrading ? "Downgrading..." : "Downgrade to Free")
+                        : "Switch to Free Plan"}
                     </button>
                   </div>
 
@@ -1076,30 +1107,11 @@ export function OnboardingWizard({
                         >
                           ✓ Active (Pro Plan)
                         </button>
-                      ) : hasActivePayment ? (
-                        <button
-                          type="button"
-                          onClick={() => handleSelectPlan("PRO")}
-                          style={{
-                            marginTop: "18px",
-                            width: "100%",
-                            padding: "8px",
-                            borderRadius: "6px",
-                            border: "none",
-                            backgroundColor: "#202223",
-                            color: "#FFFFFF",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Switch to Pro Plan
-                        </button>
                       ) : (
                         <button
                           type="button"
-                          disabled={isSubscribingPro}
-                          onClick={handleSubscribePro}
+                          disabled={isSubscribingPro || isDowngrading}
+                          onClick={activePayment ? () => handleSelectPlan("PRO") : handleSubscribePro}
                           style={{
                             marginTop: "18px",
                             width: "100%",
@@ -1110,7 +1122,7 @@ export function OnboardingWizard({
                             color: "#FFFFFF",
                             fontSize: "12px",
                             fontWeight: "600",
-                            cursor: isSubscribingPro ? "wait" : "pointer",
+                            cursor: (isSubscribingPro || isDowngrading) ? "wait" : "pointer",
                             display: "inline-flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1123,7 +1135,7 @@ export function OnboardingWizard({
                             </>
                           ) : (
                             <>
-                              Subscribe to Pro ($4.99/mo) <ExternalLink size={13} />
+                              {activePayment ? "Switch to Pro Plan" : "Upgrade to Pro ($4.99/mo)"} <ExternalLink size={13} />
                             </>
                           )}
                         </button>
@@ -1225,7 +1237,7 @@ export function OnboardingWizard({
                     Enable Reviora in App Embeds (Recommended)
                   </div>
                   <div style={{ fontSize: "13px", color: "#6D7175", marginBottom: "10px", lineHeight: 1.4 }}>
-                    Turn on the <strong>Reviora Reviews</strong> app embed to activate core scripts across your store, or add the widget block to your product page.
+                    Turn on the <strong>Reviora Reviews</strong> app embed to activate core scripts and widgets across your store.
                   </div>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button
@@ -1246,25 +1258,6 @@ export function OnboardingWizard({
                       }}
                     >
                       Enable App Embed <ExternalLink size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleOpenThemeEditor}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "8px 14px",
-                        backgroundColor: "#FFFFFF",
-                        color: "#202223",
-                        border: "1px solid #C9CCCF",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Add Product Widget Block <ExternalLink size={13} />
                     </button>
                   </div>
                 </div>

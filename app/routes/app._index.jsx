@@ -7,6 +7,7 @@ import { connectDB } from "../db.server.js";
 import { MetricCard } from "../components/MetricCard.jsx";
 import { StarRating } from "../components/StarRating.jsx";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
+import { checkProPlanActive } from "../utils/billing.server.js";
 import { Star, MessageSquare, Clock } from "lucide-react";
 import process from 'process'
 
@@ -18,20 +19,9 @@ export const loader = async ({ request }) => {
   const storeDoc = await StoreReviews.findOne({ shop }).lean({ virtuals: true });
   const shopSettings = await getShopSettings(shop);
 
-  // Check live Shopify billing status for Pro plan
-  let hasActivePayment = false;
-  try {
-    const billingCheck = await billing.check({
-      plans: ["Pro"],
-      isTest: process.env.NODE_ENV !== "production",
-    });
-    hasActivePayment = Boolean(billingCheck.hasActivePayment);
-    if (hasActivePayment && shopSettings?.plan !== "PRO") {
-      await updateShopSettings(shop, { plan: "PRO" });
-    }
-  } catch (err) {
-    hasActivePayment = shopSettings?.plan === "PRO";
-  }
+  // Check live Shopify billing status for Pro plan (accurately detects both test & live charges)
+  const billingResult = await checkProPlanActive({ admin, billing, shop });
+  const hasActivePayment = billingResult.hasActivePayment;
 
   let defaultThemeId = "current";
   try {
