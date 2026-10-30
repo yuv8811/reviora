@@ -4,7 +4,7 @@ import { authenticate } from "../shopify.server.js";
 import { widgetsConfig } from "../config/widgets.config.jsx";
 import { getShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
 import { checkProPlanActive } from "../utils/billing.server.js";
-import { CheckCircle2, Lock, FileText, Layers } from "lucide-react";
+import { CheckCircle2, Lock, FileText, Layers, MessageSquarePlus } from "lucide-react";
 import { WidgetLivePreview } from "../components/WidgetLivePreview.jsx";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
 
@@ -1237,7 +1237,7 @@ export default function WidgetsPage() {
 
           {/* Helpful Navigation Tip */}
           <div style={{ padding: "10px 14px", backgroundColor: "#fffbeb", border: "1px solid #fef3c7", borderRadius: "8px", fontSize: "12px", color: "#92400e", display: "flex", alignItems: "center", gap: "6px" }}>
-            <span>💡</span>
+            <MessageSquarePlus size={18} />
             <span>
               <strong>Tip:</strong> After creating your page, remember to link it in your store&apos;s header or footer menu under <strong>Online Store &gt; Navigation</strong>.
             </span>

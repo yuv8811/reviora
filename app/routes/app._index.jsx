@@ -8,7 +8,7 @@ import { MetricCard } from "../components/MetricCard.jsx";
 import { StarRating } from "../components/StarRating.jsx";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
 import { checkProPlanActive } from "../utils/billing.server.js";
-import { Star, MessageSquare, Clock } from "lucide-react";
+import { Star, MessageSquare, Clock, MessageCircleText, MessageCirclePlus } from "lucide-react";
 import process from 'process'
 
 export const loader = async ({ request }) => {
@@ -57,9 +57,6 @@ export const loader = async ({ request }) => {
   const forceOnboarding =
     url.searchParams.get("onboarding") === "true" ||
     url.searchParams.get("onboarding") === "1";
-  const isTestParam =
-    url.searchParams.get("test") === "true" ||
-    url.searchParams.get("test") === "1";
 
   // Redirect to dedicated /app/onboarding if onboarding requested or not completed
   if (forceOnboarding || !shopSettings?.onboardingCompleted) {
@@ -493,7 +490,7 @@ export default function DashboardPage() {
           <s-section>
             <s-stack gap="small">
               <s-stack direction="inline" gap="small" alignItems="center">
-                <span style={{ fontSize: "22px", lineHeight: 1 }}>💡</span>
+                <MessageCirclePlus size={18} />
                 <s-heading size="small">Request a Feature</s-heading>
               </s-stack>
               <s-paragraph color="subdued">
@@ -511,7 +508,7 @@ export default function DashboardPage() {
           <s-section>
             <s-stack gap="small">
               <s-stack direction="inline" gap="small" alignItems="center">
-                <span style={{ fontSize: "22px", lineHeight: 1 }}>💬</span>
+                <MessageCircleText size={18} />
                 <s-heading size="small">Contact Us</s-heading>
               </s-stack>
               <s-paragraph color="subdued">
