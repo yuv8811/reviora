@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLoaderData, useSearchParams, useNavigation, useSubmit, useActionData } from "react-router";
+import { useLoaderData, useSearchParams, useNavigation, useSubmit, useActionData, useNavigate } from "react-router";
 import { authenticate } from "../shopify.server.js";
 import { widgetsConfig } from "../config/widgets.config.jsx";
-import { getShopSettings, updateShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
+import { getShopSettings, updateWidgetSettings, getStorefrontReviews } from "../models/review.server.js";
+import { checkProPlanActive } from "../utils/billing.server.js";
 import { CheckCircle2, Lock, FileText, Layers } from "lucide-react";
 import { WidgetLivePreview } from "../components/WidgetLivePreview.jsx";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
@@ -59,28 +60,9 @@ export const loader = async ({ request }) => {
 
   const shopSettings = await getShopSettings(shop);
 
-  let currentPlan = shopSettings?.plan || "FREE";
-  try {
-    // eslint-disable-next-line no-undef
-    const isTest = process.env.NODE_ENV !== "production";
-    const billingCheck = await billing.check({
-      plans: ["Pro"],
-      isTest,
-    });
-    if (billingCheck.hasActivePayment) {
-      currentPlan = "PRO";
-      if (shopSettings.plan !== "PRO") {
-        await updateShopSettings(shop, { plan: "PRO" });
-      }
-    } else {
-      currentPlan = "FREE";
-      if (shopSettings.plan !== "FREE") {
-        await updateShopSettings(shop, { plan: "FREE" });
-      }
-    }
-  } catch (error) {
-    console.warn("Billing check in widgets loader failed:", error?.message || error);
-  }
+  // Live billing plan check (accurately detects both test & live Pro charges)
+  const billingResult = await checkProPlanActive({ admin, billing, shop });
+  const currentPlan = billingResult.currentPlan;
 
   // Load live reviews and aggregates from store for real-time live preview
   let realReviews = [];
@@ -170,6 +152,7 @@ export default function WidgetsPage() {
   const actionData = useActionData();
   const navigation = useNavigation();
   const submit = useSubmit();
+  const navigate = useNavigate();
 
   const [selectedThemeId, setSelectedThemeId] = useState(defaultThemeId);
   const [copiedSnippet, setCopiedSnippet] = useState(false);
@@ -215,7 +198,7 @@ export default function WidgetsPage() {
   };
 
   const handleNavigateToBilling = () => {
-    window.location.href = "/app/billing";
+    navigate("/app/billing");
   };
 
   // Studio customizer state

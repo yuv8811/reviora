@@ -1,5 +1,19 @@
 /* Reviora Admin Styles - Native Shopify Polaris styling */
 
+/* Hide Driven By Branding (Zoho SalesIQ) */
+.flogo,
+.siqcw-drivenby,
+.flogo.siqcw-drivenby,
+[class*="siqcw-drivenby"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
 /* Clean plan card container with zero hover jump */
 .reviora-plan-card {
   position: relative;

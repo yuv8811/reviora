@@ -1242,22 +1242,31 @@ export function OnboardingWizard({
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      onClick={handleOpenAppEmbed}
+                      disabled={themeVerified}
+                      onClick={themeVerified ? undefined : handleOpenAppEmbed}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "6px",
                         padding: "8px 14px",
-                        backgroundColor: "#008060",
-                        color: "#FFFFFF",
-                        border: "none",
+                        backgroundColor: themeVerified ? "#F1F2F4" : "#008060",
+                        color: themeVerified ? "#6D7175" : "#FFFFFF",
+                        border: themeVerified ? "1px solid #C9CCCF" : "none",
                         borderRadius: "6px",
                         fontSize: "12px",
                         fontWeight: "600",
-                        cursor: "pointer",
+                        cursor: themeVerified ? "not-allowed" : "pointer",
                       }}
                     >
-                      Enable App Embed <ExternalLink size={13} />
+                      {themeVerified ? (
+                        <>
+                          <Check size={13} strokeWidth={2.5} color="#008060" /> App Embed Enabled
+                        </>
+                      ) : (
+                        <>
+                          Enable App Embed <ExternalLink size={13} />
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

@@ -18,6 +18,71 @@ export function ZohoSalesIQ() {
       },
     };
 
+    // Inject style to hide Zoho branding elements (.flogo, .siqcw-drivenby)
+    const styleId = "hide-zoho-branding";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .flogo,
+        .siqcw-drivenby,
+        .flogo.siqcw-drivenby,
+        [class*="siqcw-drivenby"],
+        [class*="flogo"] {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          height: 0 !important;
+          width: 0 !important;
+          overflow: hidden !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const hideDrivenByElements = () => {
+      try {
+        const els = document.querySelectorAll(".flogo, .siqcw-drivenby, [class*='siqcw-drivenby']");
+        els.forEach((el) => {
+          el.style.setProperty("display", "none", "important");
+          el.style.setProperty("visibility", "hidden", "important");
+        });
+
+        // Also check any child/shadow iframes if accessible
+        const iframes = document.querySelectorAll("iframe");
+        iframes.forEach((iframe) => {
+          try {
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (doc) {
+              const innerEls = doc.querySelectorAll(".flogo, .siqcw-drivenby, [class*='siqcw-drivenby']");
+              innerEls.forEach((el) => {
+                el.style.setProperty("display", "none", "important");
+                el.style.setProperty("visibility", "hidden", "important");
+              });
+              if (!doc.getElementById("hide-zoho-branding-inner")) {
+                const innerStyle = doc.createElement("style");
+                innerStyle.id = "hide-zoho-branding-inner";
+                innerStyle.textContent = `
+                  .flogo, .siqcw-drivenby, .flogo.siqcw-drivenby, [class*="siqcw-drivenby"] {
+                    display: none !important;
+                    visibility: hidden !important;
+                    height: 0 !important;
+                    overflow: hidden !important;
+                  }
+                `;
+                doc.head?.appendChild(innerStyle);
+              }
+            }
+          } catch {
+            // cross-origin iframe security, ignore
+          }
+        });
+      } catch {
+        // ignore
+      }
+    };
+
     // If script already exists in the document, force show
     if (document.getElementById("zsiqscript")) {
       try {
@@ -40,12 +105,15 @@ export function ZohoSalesIQ() {
 
     document.body.appendChild(script);
 
-    // Ensure it remains visible if SalesIQ attempts to auto-hide inside an iframe
+    hideDrivenByElements();
+
+    // Ensure it remains visible if SalesIQ attempts to auto-hide inside an iframe, and hide branding
     const interval = setInterval(() => {
       try {
         if (window.$zoho?.salesiq?.floatbutton) {
           window.$zoho.salesiq.floatbutton.visible("show");
         }
+        hideDrivenByElements();
       } catch (e) {
         // 
       }
