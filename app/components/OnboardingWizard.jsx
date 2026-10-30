@@ -31,15 +31,12 @@ export function OnboardingWizard({
   initialThemeName = "",
 }) {
   const [currentStep, setCurrentStep] = useState(() => {
-    if (isTest) {
-      if (typeof window !== "undefined") {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlStep = parseInt(urlParams.get("step") || "0", 10);
-        if (urlStep >= 1 && urlStep <= 5) return urlStep;
-      }
-      return initialStep || 1;
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlStep = parseInt(urlParams.get("step") || "0", 10);
+      if (urlStep >= 1 && urlStep <= 5) return urlStep;
     }
-    if (initialStep && initialStep > 1) return initialStep;
+    if (initialStep && initialStep >= 1 && initialStep <= 5) return initialStep;
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem(`reviora_onboarding_step_${shop}`);

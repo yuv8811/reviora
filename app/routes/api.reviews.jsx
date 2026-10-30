@@ -1,8 +1,8 @@
-import { getStorefrontReviews, createReview, deleteReview } from "../models/review.server.js";
+import { getStorefrontReviews, createReview } from "../models/review.server.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
   "Access-Control-Max-Age": "86400",
 };
@@ -47,25 +47,10 @@ export const loader = async ({ request }) => {
 
 /**
  * POST /api/reviews - Customer review submission
- * DELETE /api/reviews - Review deletion
  */
 export const action = async ({ request }) => {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
-  }
-
-  if (request.method === "DELETE") {
-    try {
-      const payload = await request.json();
-      const { shop, reviewId } = payload;
-      if (!shop || !reviewId) {
-        return Response.json({ error: "shop and reviewId are required" }, { status: 400, headers: CORS_HEADERS });
-      }
-      const result = await deleteReview(shop, reviewId);
-      return Response.json(result, { headers: CORS_HEADERS });
-    } catch (err) {
-      return Response.json({ error: err.message }, { status: 500, headers: CORS_HEADERS });
-    }
   }
 
   if (request.method !== "POST") {

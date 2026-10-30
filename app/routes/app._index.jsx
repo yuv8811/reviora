@@ -130,10 +130,33 @@ export const action = async ({ request }) => {
 
   if (actionType === "subscribePro") {
     try {
-      const isTest = process.env.NODE_ENV !== "production";
+      const isTestEnv = process.env.NODE_ENV !== "production";
+      const isTestParam = formData.get("isTest") === "true";
+
+      // Detect if store is a partner development store so test billing is used
+      let isDevStore = false;
+      try {
+        const shopRes = await admin.graphql(
+          `#graphql
+          query getShopPlanForBilling {
+            shop {
+              plan {
+                partnerDevelopment
+              }
+            }
+          }`
+        );
+        const shopJson = await shopRes.json();
+        isDevStore = Boolean(shopJson?.data?.shop?.plan?.partnerDevelopment);
+      } catch (shopPlanErr) {
+        console.warn("Could not check if shop is development store:", shopPlanErr?.message || shopPlanErr);
+      }
+
+      const testFlag = isTestEnv || isTestParam || isDevStore;
       const cleanShop = session.shop.replace(".myshopify.com", "");
       const apiKey = process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416";
-      const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/onboarding?step=4${isTest ? "&test=true" : ""}`;
+      const testQuery = testFlag ? "&test=true" : "";
+      const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/onboarding?step=4${testQuery}`;
 
       const response = await admin.graphql(
         `#graphql
@@ -163,7 +186,7 @@ export const action = async ({ request }) => {
           variables: {
             name: "Pro",
             returnUrl,
-            test: isTest,
+            test: testFlag,
             lineItems: [
               {
                 plan: {
@@ -181,8 +204,9 @@ export const action = async ({ request }) => {
       const json = await response.json();
       const userErrors = json?.data?.appSubscriptionCreate?.userErrors;
       if (userErrors && userErrors.length > 0) {
-        console.error("Shopify billing userErrors in onboarding:", userErrors);
-        return { error: userErrors.map((e) => e.message).join(", ") };
+        const userErrMsg = userErrors.map((e) => e.message).join(", ");
+        console.error("Shopify billing userErrors in onboarding:", userErrMsg);
+        return { error: userErrMsg };
       }
 
       const confirmationUrl = json?.data?.appSubscriptionCreate?.confirmationUrl;
@@ -192,8 +216,19 @@ export const action = async ({ request }) => {
 
       return { error: "No confirmation URL returned by Shopify." };
     } catch (err) {
-      console.error("subscribePro error in onboarding:", err?.message || err);
-      return { error: err?.message || "Failed to initiate billing request" };
+      let errorMessage = "Failed to initiate billing request";
+      if (err instanceof Response) {
+        try {
+          const errorJson = await err.json();
+          errorMessage = errorJson?.errors?.[0]?.message || (typeof errorJson?.errors === "string" ? errorJson.errors : null) || errorJson?.message || err.statusText || errorMessage;
+        } catch {
+          errorMessage = err.statusText || errorMessage;
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      console.error("subscribePro error in onboarding:", errorMessage, err);
+      return { error: errorMessage };
     }
   }
 

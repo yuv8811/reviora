@@ -183,9 +183,20 @@
         return u.origin;
       }
     } catch {
-      // W`
+      // ignore
     }
     return trimmed.replace(/\/app(\/api)?$/i, "").replace(/\/api$/i, "");
+  }
+
+  // Security Helper: Escape HTML to prevent XSS when rendering user reviews/Q&A
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   // =========================================================
@@ -434,7 +445,7 @@
               <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2zm0-10h2v8h-2z"/></svg>
               Response from Store Owner
             </div>
-            <p class="reviora-reply-body">${r.replies[0].body}</p>
+            <p class="reviora-reply-body">${escapeHtml(r.replies[0].body)}</p>
           </div>
         `
         : "";
@@ -443,10 +454,10 @@
         <div class="reviora-card" data-review-id="${r.id}">
           <div class="reviora-card-top">
             <div class="reviora-author-meta">
-              <div class="reviora-avatar">${initials}</div>
+              <div class="reviora-avatar">${escapeHtml(initials)}</div>
               <div class="reviora-author-details">
                 <div class="reviora-author-name-row">
-                  <span class="reviora-author">${r.authorName || "Verified Customer"}</span>
+                  <span class="reviora-author">${escapeHtml(r.authorName || "Verified Customer")}</span>
                   ${r.verified ? `
                     <span class="reviora-verified-badge">
                       <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
@@ -462,8 +473,8 @@
             <span class="reviora-date">${dateStr}</span>
           </div>
 
-          ${r.title ? `<h3 class="reviora-card-title">${r.title}</h3>` : ""}
-          <div class="reviora-card-body">${r.body}</div>
+          ${r.title ? `<h3 class="reviora-card-title">${escapeHtml(r.title)}</h3>` : ""}
+          <div class="reviora-card-body">${escapeHtml(r.body)}</div>
 
           ${this.renderMediaRow(r)}
           ${replyHtml}
@@ -1370,9 +1381,9 @@
         slidesHtml = targetList.map((r) => `
           <div class="reviora-testimonial-slide">
             <div class="reviora-testimonial-quote-icon">&ldquo;</div>
-            <p class="reviora-testimonial-text">"${r.body}"</p>
+            <p class="reviora-testimonial-text">"${escapeHtml(r.body)}"</p>
             <div style="margin-bottom:8px;">${renderStarsSvg(r.rating, this.starColor, 15)}</div>
-            <div style="font-weight:700;font-size:14px;color:#0f172a;">${r.authorName}</div>
+            <div style="font-weight:700;font-size:14px;color:#0f172a;">${escapeHtml(r.authorName)}</div>
             ${r.verified ? `
               <span class="reviora-verified-badge" style="margin-top:4px;">
                 <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
@@ -1389,17 +1400,17 @@
             <div class="reviora-video-reel-slide" data-idx="${idx}">
               ${media ? (
               isVideo
-                ? `<video src="${media.url}" ${media.poster ? `poster="${media.poster}"` : ""} class="reviora-video-reel-media" preload="metadata" muted playsinline></video>`
-                : `<img src="${media.url}" class="reviora-video-reel-media" alt="Review media" />`
+                ? `<video src="${encodeURI(media.url)}" ${media.poster ? `poster="${encodeURI(media.poster)}"` : ""} class="reviora-video-reel-media" preload="metadata" muted playsinline></video>`
+                : `<img src="${encodeURI(media.url)}" class="reviora-video-reel-media" alt="Review media" />`
             ) : `
                 <div style="width:100%;height:100%;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;">★</div>
               `}
               <div class="reviora-video-reel-overlay">
                 <div class="reviora-reel-play-btn">▶</div>
                 <div class="reviora-reel-meta">
-                  <div class="reviora-reel-author">${r.authorName}</div>
+                  <div class="reviora-reel-author">${escapeHtml(r.authorName)}</div>
                   <div class="reviora-reel-stars">${renderStarsSvg(r.rating, this.starColor, 13)}</div>
-                  ${r.productTitle ? `<div style="font-size:10px;opacity:0.85;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.productTitle}</div>` : ""}
+                  ${r.productTitle ? `<div style="font-size:10px;opacity:0.85;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.productTitle)}</div>` : ""}
                 </div>
               </div>
             </div>
@@ -1414,9 +1425,9 @@
               <div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="reviora-avatar" style="width:32px;height:32px;font-size:12px;">${initials}</div>
+                    <div class="reviora-avatar" style="width:32px;height:32px;font-size:12px;">${escapeHtml(initials)}</div>
                     <div>
-                      <div style="font-weight:700;font-size:13px;color:#0f172a;">${r.authorName}</div>
+                      <div style="font-weight:700;font-size:13px;color:#0f172a;">${escapeHtml(r.authorName)}</div>
                       ${r.verified ? `
                         <span class="reviora-verified-badge" style="font-size:10px;padding:1px 5px;">
                           <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
@@ -1428,16 +1439,16 @@
                   <div>${renderStarsSvg(r.rating, this.starColor, 13)}</div>
                 </div>
 
-                ${r.title ? `<div style="font-weight:700;font-size:14px;color:#0f172a;margin-bottom:6px;">${r.title}</div>` : ""}
+                ${r.title ? `<div style="font-weight:700;font-size:14px;color:#0f172a;margin-bottom:6px;">${escapeHtml(r.title)}</div>` : ""}
                 <div style="font-size:13px;line-height:1.5;color:#475569;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
-                  ${r.body || ""}
+                  ${escapeHtml(r.body || "")}
                 </div>
               </div>
 
               ${r.productTitle ? `
                 <div class="reviora-card-product-tag">
                   <span>🛍️</span>
-                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${r.productTitle}</span>
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${escapeHtml(r.productTitle)}</span>
                 </div>
               ` : ""}
             </div>
@@ -1663,12 +1674,12 @@
       body.innerHTML = list.map((r) => `
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-weight:700;font-size:13px;color:#0f172a;">${r.authorName}</span>
+            <span style="font-weight:700;font-size:13px;color:#0f172a;">${escapeHtml(r.authorName)}</span>
             <span class="reviora-verified-badge" style="font-size:10px;">✓ Verified</span>
           </div>
           <div style="margin-bottom:6px;">${renderStarsSvg(r.rating || 5, this.starColor, 13)}</div>
-          ${r.title ? `<div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:4px;">${r.title}</div>` : ""}
-          <p style="margin:0;font-size:12px;color:#475569;line-height:1.4;">${r.body}</p>
+          ${r.title ? `<div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:4px;">${escapeHtml(r.title)}</div>` : ""}
+          <p style="margin:0;font-size:12px;color:#475569;line-height:1.4;">${escapeHtml(r.body)}</p>
         </div>
       `).join("");
     }
@@ -1734,10 +1745,10 @@
         toast.className = "reviora-popup-toast";
         toast.innerHTML = `
           <button type="button" class="reviora-popup-close" aria-label="Close">&times;</button>
-          <div class="reviora-popup-avatar">${initials}</div>
+          <div class="reviora-popup-avatar">${escapeHtml(initials)}</div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-              <span style="font-weight:700;font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.authorName}</span>
+              <span style="font-weight:700;font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.authorName)}</span>
               <span style="color:#059669;font-size:10px;font-weight:700;">✓ Verified</span>
             </div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
@@ -1745,7 +1756,7 @@
               <span style="font-size:10px;color:#94a3b8;">Recent order</span>
             </div>
             <div style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic;">
-              "${r.body || r.title || 'Excellent purchase!'}"
+              "${escapeHtml(r.body || r.title || 'Excellent purchase!')}"
             </div>
           </div>
         `;
@@ -1898,13 +1909,13 @@
         return `
           <div class="reviora-ugc-tile" data-media-idx="${idx}" style="position:relative;overflow:hidden;border-radius:12px;background:#0f172a;cursor:pointer;">
             ${isVideo
-              ? `<video src="${m.url}" muted playsinline loop style="width:100%;height:100%;object-fit:cover;display:block;"></video><span style="position:absolute;top:10px;right:10px;background:rgba(15,23,42,0.8);color:#fff;padding:3px 7px;border-radius:6px;font-size:10px;font-weight:700;">▶ Video</span>`
-              : `<img src="${m.url}" alt="Customer photo by ${r.authorName || 'Buyer'}" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">`
+              ? `<video src="${encodeURI(m.url)}" muted playsinline loop style="width:100%;height:100%;object-fit:cover;display:block;"></video><span style="position:absolute;top:10px;right:10px;background:rgba(15,23,42,0.8);color:#fff;padding:3px 7px;border-radius:6px;font-size:10px;font-weight:700;">▶ Video</span>`
+              : `<img src="${encodeURI(m.url)}" alt="Customer photo by ${escapeHtml(r.authorName || 'Buyer')}" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">`
             }
             <div class="reviora-ugc-tile-overlay" style="position:absolute;bottom:0;left:0;right:0;padding:12px;background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 70%, transparent 100%);color:#fff;display:flex;justify-content:space-between;align-items:flex-end;">
               <div>
-                <div style="font-weight:700;font-size:12px;">${r.authorName || "Verified Customer"}</div>
-                <div style="font-size:10px;opacity:0.85;">${r.title || r.body || "Verified Buyer"}</div>
+                <div style="font-weight:700;font-size:12px;">${escapeHtml(r.authorName || "Verified Customer")}</div>
+                <div style="font-size:10px;opacity:0.85;">${escapeHtml(r.title || r.body || "Verified Buyer")}</div>
               </div>
               <div style="color:${this.starColor};font-size:11px;letter-spacing:1px;">${renderStarsSvg(r.rating || 5, this.starColor, 11)}</div>
             </div>
@@ -2178,16 +2189,16 @@
           <div class="reviora-qa-item-q">
             <span class="reviora-qa-badge-q">Q</span>
             <div>
-              <div class="reviora-qa-q-text">${item.q}</div>
-              <div class="reviora-qa-asker-meta">Asked by ${item.asker || "Shopper"}</div>
+              <div class="reviora-qa-q-text">${escapeHtml(item.q)}</div>
+              <div class="reviora-qa-asker-meta">Asked by ${escapeHtml(item.asker || "Shopper")}</div>
             </div>
           </div>
           <div class="reviora-qa-item-a" style="${item.isPending ? 'border-left-color: #f59e0b;' : ''}">
             <span class="reviora-qa-badge-a" style="${item.isPending ? 'background: #f59e0b;' : ''}">A</span>
             <div>
-              <div class="reviora-qa-a-text">${item.a}</div>
+              <div class="reviora-qa-a-text">${escapeHtml(item.a)}</div>
               <div class="reviora-qa-answerer-meta" style="${item.isPending ? 'color: #b45309;' : ''}">
-                ${item.isPending ? '⏳ Awaiting answer by Store Support' : `✓ Answered by ${item.answerer || "Store Team"}`}
+                ${item.isPending ? '⏳ Awaiting answer by Store Support' : `✓ Answered by ${escapeHtml(item.answerer || "Store Team")}`}
               </div>
             </div>
           </div>
