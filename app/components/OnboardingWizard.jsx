@@ -15,6 +15,7 @@ import {
   Eye,
   Code2,
   CheckCircle2,
+  Palette,
 } from "lucide-react";
 import { widgetsConfig } from "../config/widgets.config.jsx";
 
@@ -22,6 +23,7 @@ export function OnboardingWizard({
   shop,
   apiKey,
   defaultThemeId = "current",
+  themes = [],
   onComplete,
   initialStep = 1,
   hasActivePayment = false,
@@ -30,6 +32,9 @@ export function OnboardingWizard({
   initialThemeVerified = false,
   initialThemeName = "",
 }) {
+  const [selectedThemeId, setSelectedThemeId] = useState(() => {
+    return defaultThemeId || (themes.length > 0 ? themes[0].id : "current");
+  });
   const [currentStep, setCurrentStep] = useState(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
@@ -196,12 +201,15 @@ export function OnboardingWizard({
       if (themeFetcher.data.verified) {
         setThemeVerified(true);
         setVerificationError("");
-        const name = themeFetcher.data?.themeName || "Live Theme";
-        setThemeName(name);
+        if (themeFetcher.data.themeName) {
+          setThemeName(themeFetcher.data.themeName);
+        }
         if (typeof window !== "undefined") {
           try {
             localStorage.setItem(`reviora_theme_verified_${shop}`, "true");
-            localStorage.setItem(`reviora_theme_name_${shop}`, name);
+            if (themeFetcher.data.themeName) {
+              localStorage.setItem(`reviora_theme_name_${shop}`, themeFetcher.data.themeName);
+            }
           } catch (e) {
             // ignore
           }
@@ -209,6 +217,9 @@ export function OnboardingWizard({
       } else {
         setThemeVerified(false);
         setVerificationError(themeFetcher.data?.error || "Reviora Reviews app embed is not enabled yet in your theme.");
+        if (themeFetcher.data.themeName) {
+          setThemeName(themeFetcher.data.themeName);
+        }
         if (typeof window !== "undefined") {
           try {
             localStorage.removeItem(`reviora_theme_verified_${shop}`);
@@ -220,14 +231,14 @@ export function OnboardingWizard({
     }
   }, [themeFetcher.data, shop]);
 
-  // Automatic background verification for theme connection on Step 4
+  // Automatic verification for theme connection on Step 4
   useEffect(() => {
     if (currentStep !== 4) return;
 
-    // Trigger check immediately if idle
+    // Trigger check immediately if idle and no data
     if (themeFetcher.state === "idle" && !themeFetcher.data) {
       themeFetcher.submit(
-        { actionType: "verifyTheme" },
+        { actionType: "verifyTheme", themeId: selectedThemeId },
         { method: "POST" }
       );
     }
@@ -236,7 +247,7 @@ export function OnboardingWizard({
     const handleRecheck = () => {
       if (themeFetcher.state === "idle") {
         themeFetcher.submit(
-          { actionType: "verifyTheme" },
+          { actionType: "verifyTheme", themeId: selectedThemeId },
           { method: "POST" }
         );
       }
@@ -245,20 +256,11 @@ export function OnboardingWizard({
     window.addEventListener("focus", handleRecheck);
     document.addEventListener("visibilitychange", handleRecheck);
 
-    // Heartbeat auto-poll every 3 seconds while on Step 4 until verified
-    let timer = null;
-    if (!themeVerified) {
-      timer = setInterval(() => {
-        handleRecheck();
-      }, 3000);
-    }
-
     return () => {
       window.removeEventListener("focus", handleRecheck);
       document.removeEventListener("visibilitychange", handleRecheck);
-      if (timer) clearInterval(timer);
     };
-  }, [currentStep, themeVerified, themeFetcher.state, themeFetcher.data, themeFetcher]);
+  }, [currentStep, selectedThemeId, themeFetcher.state, themeFetcher.data]);
 
 
 
@@ -271,7 +273,8 @@ export function OnboardingWizard({
   ];
 
   const resolvedApiKey = apiKey || "f79eb2d3832f37be2bb3a5c7c1efd416";
-  const appEmbedUrl = `https://${shop}/admin/themes/${defaultThemeId}/editor?context=apps&activateAppId=${resolvedApiKey}/app_embed`;
+  const currentThemeId = selectedThemeId && selectedThemeId !== "current" ? selectedThemeId : defaultThemeId;
+  const appEmbedUrl = `https://${shop}/admin/themes/${currentThemeId}/editor?context=apps&activateAppId=${resolvedApiKey}/app_embed`;
 
   const handleOpenAppEmbed = () => {
     if (window.shopify?.open) {
@@ -281,9 +284,10 @@ export function OnboardingWizard({
     }
   };
 
-  const handleVerifyTheme = () => {
+  const handleVerifyTheme = (themeIdToVerify) => {
+    const tid = typeof themeIdToVerify === "string" ? themeIdToVerify : selectedThemeId;
     themeFetcher.submit(
-      { actionType: "verifyTheme" },
+      { actionType: "verifyTheme", themeId: tid },
       { method: "POST" }
     );
   };
@@ -1217,13 +1221,80 @@ export function OnboardingWizard({
         ======================================================== */}
         {currentStep === 4 && (
           <div>
-            <div style={{ marginBottom: "24px" }}>
+            <div style={{ marginBottom: "20px" }}>
               <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#202223", margin: "0 0 6px 0" }}>
                 Enable in Your Shopify Theme
               </h2>
               <p style={{ fontSize: "14px", color: "#6D7175", margin: 0, lineHeight: 1.5 }}>
-                Connect Reviora to your live theme. No manual liquid coding or theme editing required.
+                Connect Reviora to your theme. No manual liquid coding or theme editing required.
               </p>
+            </div>
+
+            {/* Target Theme Selector */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "14px",
+                padding: "14px 18px",
+                backgroundColor: "#F9FAFB",
+                border: "1px solid #E5E7EB",
+                borderRadius: "8px",
+                marginBottom: "24px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "6px", backgroundColor: "#E4F8F0", color: "#008060", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Palette size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#202223" }}>Target Theme</div>
+                  <div style={{ fontSize: "12px", color: "#6D7175" }}>Choose which theme you are editing and verifying</div>
+                </div>
+              </div>
+
+              <div style={{ minWidth: "220px", flex: "1 1 220px", maxWidth: "340px" }}>
+                <select
+                  value={selectedThemeId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setSelectedThemeId(newId);
+                    const matched = themes && themes.find((t) => String(t.id || t.value) === String(newId));
+                    if (matched) {
+                      setThemeName(matched.name);
+                    }
+                    setThemeVerified(false);
+                    setVerificationError("");
+                    handleVerifyTheme(newId);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    borderRadius: "6px",
+                    border: "1px solid #D2D5D8",
+                    backgroundColor: "#FFFFFF",
+                    color: "#202223",
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  {themes && themes.length > 0 ? (
+                    themes.map((t) => (
+                      <option key={t.id || t.value} value={t.id || t.value}>
+                        {t.label || t.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value={defaultThemeId}>
+                      {themeName ? `${themeName} (current)` : "Current Live Theme"}
+                    </option>
+                  )}
+                </select>
+              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "28px" }}>
@@ -1237,7 +1308,7 @@ export function OnboardingWizard({
                     Enable Reviora in App Embeds (Recommended)
                   </div>
                   <div style={{ fontSize: "13px", color: "#6D7175", marginBottom: "10px", lineHeight: 1.4 }}>
-                    Turn on the <strong>Reviora Reviews</strong> app embed to activate core scripts and widgets across your store.
+                    Turn on the <strong>Reviora Reviews</strong> app embed to activate core scripts and widgets on <strong>{themeName || "your theme"}</strong>.
                   </div>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button
@@ -1316,8 +1387,8 @@ export function OnboardingWizard({
                   </div>
                   <div style={{ fontSize: "13px", color: themeVerified ? "#008060" : "#6D7175", marginBottom: "12px", lineHeight: 1.4 }}>
                     {themeVerified
-                      ? "✓ Reviora is enabled and verified in your theme. You are ready to complete setup."
-                      : "Click 'Enable App Embed' above and save your theme. You can verify connection below or proceed directly to complete setup."}
+                      ? `✓ Reviora is enabled and verified in "${themeName || "your theme"}". You are ready to complete setup.`
+                      : `Click 'Enable App Embed' above and save "${themeName || "your theme"}". You can verify connection below or proceed directly to complete setup.`}
                   </div>
                   {!themeVerified && verificationError && (
                     <div style={{ padding: "8px 12px", backgroundColor: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: "6px", color: "#0369A1", fontSize: "12px", marginBottom: "12px" }}>
@@ -1328,7 +1399,7 @@ export function OnboardingWizard({
                     <button
                       type="button"
                       disabled={isVerifying}
-                      onClick={handleVerifyTheme}
+                      onClick={() => handleVerifyTheme()}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",

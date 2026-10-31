@@ -23,22 +23,38 @@ export const loader = async ({ request }) => {
   const billingResult = await checkProPlanActive({ admin, billing, shop });
   const hasActivePayment = billingResult.hasActivePayment;
 
+  let themes = [];
   let defaultThemeId = "current";
   try {
     const response = await admin.graphql(
       `#graphql
       query getStoreThemes {
-        themes(first: 5, roles: [MAIN]) {
+        themes(first: 25) {
           nodes {
             id
+            name
+            role
           }
         }
       }`
     );
     const json = await response.json();
-    const node = json?.data?.themes?.nodes?.[0];
-    if (node?.id) {
-      defaultThemeId = node.id.split("/").pop();
+    const nodes = json?.data?.themes?.nodes || [];
+    if (nodes.length > 0) {
+      themes = nodes.map((t) => {
+        const numericId = t.id ? t.id.split("/").pop() : "current";
+        const isLive = t.role === "MAIN";
+        return {
+          id: numericId,
+          name: t.name,
+          role: t.role,
+          isLive,
+          label: isLive ? `${t.name} (live)` : `${t.name} (${t.role ? t.role.toLowerCase() : "unpublished"})`,
+          value: numericId,
+        };
+      });
+      themes.sort((a, b) => (b.isLive ? 1 : 0) - (a.isLive ? 1 : 0));
+      defaultThemeId = themes[0]?.id || "current";
     }
   } catch (err) {
     console.error("Theme lookup error in dashboard:", err?.message || err);
@@ -78,6 +94,7 @@ export const loader = async ({ request }) => {
     shop,
     apiKey: process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416",
     defaultThemeId,
+    themes,
     forceOnboarding,
     initialStep,
     hasActivePayment,
@@ -347,6 +364,7 @@ export default function DashboardPage() {
           shop={shop}
           apiKey={apiKey}
           defaultThemeId={defaultThemeId}
+          themes={loaderData?.themes || []}
           onComplete={handleCompleteOnboarding}
           initialStep={loaderData?.initialStep || 1}
           hasActivePayment={Boolean(loaderData?.hasActivePayment)}
