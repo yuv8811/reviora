@@ -545,7 +545,7 @@
               <div class="reviora-avg-box">
                 <div class="reviora-avg-number">${avg > 0 ? avg.toFixed(1) : "0.0"}</div>
                 <div class="reviora-stars">${renderStarsSvg(avg, this.starColor, 20)}</div>
-                <div class="reviora-subtext">Based on ${totalCount} verified reviews</div>
+                <div class="reviora-subtext">${totalCount > 0 ? `Based on ${totalCount} review${totalCount > 1 ? "s" : ""}` : "No reviews yet"}</div>
               </div>
 
               <div class="reviora-bars">
@@ -1150,13 +1150,13 @@
   // CAROUSEL COMPONENT (<reviora-reviews-carousel>)
   // Supports type="cards" | "testimonials" | "videos"
   // =========================================================
-  // Demo items displayed when merchant is customizing in Shopify Theme Editor or when 0 reviews exist
+  // Demo items displayed ONLY in Shopify Theme Customizer preview when 0 reviews exist yet
   const DEMO_VIDEO_REELS = [
     {
-      authorName: "Sarah M.",
+      authorName: "Sample Customer",
       rating: 5,
-      productTitle: "Allemano - Collection 1919",
-      verified: true,
+      productTitle: "Sample Product",
+      verified: false,
       media: [
         {
           mediaType: "IMAGE",
@@ -1165,10 +1165,10 @@
       ],
     },
     {
-      authorName: "Marcus V.",
+      authorName: "Sample Customer",
       rating: 5,
-      productTitle: "Collection 1973 - Shark",
-      verified: true,
+      productTitle: "Sample Product",
+      verified: false,
       media: [
         {
           mediaType: "IMAGE",
@@ -1176,77 +1176,39 @@
         },
       ],
     },
-    {
-      authorName: "Jessica T.",
-      rating: 5,
-      productTitle: "Shark & Crab Chrono",
-      verified: true,
-      media: [
-        {
-          mediaType: "IMAGE",
-          url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
-        },
-      ],
-    },
-    {
-      authorName: "David K.",
-      rating: 5,
-      productTitle: "Nautoscaph - All Red",
-      verified: true,
-      media: [
-        {
-          mediaType: "IMAGE",
-          url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
-        },
-      ],
-    },
   ];
 
   const DEMO_TESTIMONIALS = [
     {
-      authorName: "Emma Watson",
+      authorName: "Sample Shopper",
       rating: 5,
-      body: "The quality exceeded my expectations. Fast shipping and the customer service was phenomenal!",
-      verified: true,
+      body: "Sample review displayed for theme customization preview.",
+      verified: false,
     },
     {
-      authorName: "Liam Johnson",
+      authorName: "Sample Shopper",
       rating: 5,
-      body: "Unbelievable craftsmanship. I get compliments everywhere I go. Highly recommend!",
-      verified: true,
-    },
-    {
-      authorName: "Sophia Davis",
-      rating: 5,
-      body: "Best purchase I've made all year. The attention to detail is noticeable the moment you open the box.",
-      verified: true,
+      body: "Sample review displayed for theme customization preview.",
+      verified: false,
     },
   ];
 
   const DEMO_CARDS = [
     {
-      authorName: "Michael Brown",
+      authorName: "Sample Reviewer",
       rating: 5,
-      title: "Exceptional Quality",
-      body: "Arrived quickly and in pristine condition. Exactly what I was looking for!",
-      productTitle: "Classic Collection",
-      verified: true,
+      title: "Sample Preview",
+      body: "This is a placeholder review shown only while customizing your theme in the editor.",
+      productTitle: "Sample Item",
+      verified: false,
     },
     {
-      authorName: "Olivia Wilson",
+      authorName: "Sample Reviewer",
       rating: 5,
-      title: "Highly Recommend!",
-      body: "Super satisfied with the entire experience. Will definitely be buying again soon.",
-      productTitle: "Signature Item",
-      verified: true,
-    },
-    {
-      authorName: "James Taylor",
-      rating: 5,
-      title: "Worth Every Penny",
-      body: "Great value for money. Build quality is sturdy and feels truly premium.",
-      productTitle: "Essential Series",
-      verified: true,
+      title: "Sample Preview",
+      body: "This is a placeholder review shown only while customizing your theme in the editor.",
+      productTitle: "Sample Item",
+      verified: false,
     },
   ];
 
@@ -1341,9 +1303,7 @@
       const isThemeEditor = Boolean(
         (window.Shopify && window.Shopify.designMode) ||
         document.body.classList.contains("shopify-design-mode") ||
-        document.querySelector(".shopify-section") ||
-        window.location.search.includes("shopify-editor") ||
-        window.self !== window.top
+        window.location.search.includes("shopify-editor")
       );
 
       let targetList = [];
@@ -1670,16 +1630,25 @@
       const body = this.querySelector("#reviora-drawer-body");
       if (!body) return;
 
-      const list = this.reviews.length > 0 ? this.reviews : DEMO_CARDS;
-      body.innerHTML = list.map((r) => `
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
+      if (!this.reviews || this.reviews.length === 0) {
+        body.innerHTML = `
+          <div style="text-align:center;padding:32px 16px;color:#64748b;font-size:13px;">
+            <p style="margin:0 0 6px 0;font-weight:600;color:#0f172a;">No reviews yet</p>
+            <p style="margin:0;font-size:12px;">Be the first to share your thoughts!</p>
+          </div>
+        `;
+        return;
+      }
+
+      body.innerHTML = this.reviews.map((r) => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-weight:700;font-size:13px;color:#0f172a;">${escapeHtml(r.authorName)}</span>
-            <span class="reviora-verified-badge" style="font-size:10px;">✓ Verified</span>
+            <span style="font-weight:700;font-size:13px;color:#0f172a;">${escapeHtml(r.authorName || "Customer")}</span>
+            ${r.verified ? '<span class="reviora-verified-badge" style="font-size:10px;">✓ Verified</span>' : ""}
           </div>
           <div style="margin-bottom:6px;">${renderStarsSvg(r.rating || 5, this.starColor, 13)}</div>
           ${r.title ? `<div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:4px;">${escapeHtml(r.title)}</div>` : ""}
-          <p style="margin:0;font-size:12px;color:#475569;line-height:1.4;">${escapeHtml(r.body)}</p>
+          <p style="margin:0;font-size:12px;color:#475569;line-height:1.4;">${escapeHtml(r.body || "")}</p>
         </div>
       `).join("");
     }
@@ -1729,10 +1698,17 @@
     }
 
     startLoop() {
-      const list = this.reviews.length > 0 ? this.reviews : DEMO_CARDS;
-      if (list.length === 0) return;
+      // Shopify Policy 1.1.4: Only use factual information from connected shop records.
+      // If store has 0 reviews, do not show any popup toasts.
+      const list = (this.reviews || []).filter((r) => r.body || r.title);
+      if (list.length === 0) {
+        const container = this.querySelector("#reviora-popup-container");
+        if (container) container.innerHTML = "";
+        return;
+      }
 
       const showNext = () => {
+        if (!window.__REVIORA_APP_EMBED_ENABLED__) return;
         const container = this.querySelector("#reviora-popup-container");
         if (!container) return;
 
@@ -1748,15 +1724,15 @@
           <div class="reviora-popup-avatar">${escapeHtml(initials)}</div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-              <span style="font-weight:700;font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.authorName)}</span>
-              <span style="color:#059669;font-size:10px;font-weight:700;">✓ Verified</span>
+              <span style="font-weight:700;font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.authorName || "Customer")}</span>
+              ${r.verified ? '<span style="color:#059669;font-size:10px;font-weight:700;">✓ Verified</span>' : ""}
             </div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
               ${renderStarsSvg(r.rating || 5, this.starColor, 11)}
-              <span style="font-size:10px;color:#94a3b8;">Recent order</span>
+              ${r.createdAt ? `<span style="font-size:10px;color:#94a3b8;">${new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>` : ""}
             </div>
             <div style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic;">
-              "${escapeHtml(r.body || r.title || 'Excellent purchase!')}"
+              "${escapeHtml(r.body || r.title || 'Great product!')}"
             </div>
           </div>
         `;
@@ -1769,25 +1745,11 @@
         container.appendChild(toast);
 
         setTimeout(() => {
-  // If the app embed block is disabled in the theme, do not initialize or display widgets
-  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
-    const hideAll = () => {
-      document.querySelectorAll(
-        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
-      ).forEach((el) => el.style.setProperty("display", "none", "important"));
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", hideAll);
-    } else {
-      hideAll();
-    }
-    return;
-  }
           if (toast.parentNode) {
             toast.classList.add("is-fading");
             setTimeout(() => toast.remove(), 300);
           }
-        }, (this.intervalSec - 1) * 1000);
+        }, Math.max(1000, (this.intervalSec - 1) * 1000));
       };
 
       setTimeout(showNext, 2000);
@@ -1943,48 +1905,91 @@
   // 7. ALL REVIEWS DEDICATED PAGE
   // =========================================================
   class RevioraAllReviewsPage extends HTMLElement {
-    connectedCallback() {
+    async connectedCallback() {
       this.shop = this.getAttribute("data-shop") || window.Shopify?.shop || "";
       this.heading = this.getAttribute("data-heading") || "All Store Reviews";
-      this.subheading = this.getAttribute("data-subheading") || "Verified customer feedback from across our entire catalog";
+      this.subheading = this.getAttribute("data-subheading") || "Customer feedback from across our entire catalog";
       this.starColor = this.getAttribute("data-star-color") || "#FFB800";
       this.accentColor = this.getAttribute("data-accent-color") || "#0F172A";
+
       this.innerHTML = `
         <div class="reviora-widget-container" style="--reviora-star:${this.starColor};--reviora-primary:${this.accentColor};">
           <div class="reviora-header" style="text-align:center;padding:36px 24px;">
-            <h1 style="font-size:28px;font-weight:800;color:#0f172a;margin:0 0 10px 0;">${this.heading}</h1>
-            <p style="margin:0 0 20px 0;font-size:14px;color:#64748b;">${this.subheading}</p>
-            <div style="display:inline-flex;align-items:center;gap:16px;background:#f8fafc;padding:12px 24px;border-radius:999px;border:1px solid #e2e8f0;">
-              <span style="font-size:28px;font-weight:800;color:#0f172a;">4.9</span>
-              <div>
-                <div>${renderStarsSvg(4.9, this.starColor, 16)}</div>
-                <div style="font-size:12px;color:#64748b;">From 1,280 verified buyers</div>
-              </div>
-            </div>
+            <h1 style="font-size:28px;font-weight:800;color:#0f172a;margin:0 0 10px 0;">${escapeHtml(this.heading)}</h1>
+            <p style="margin:0 0 20px 0;font-size:14px;color:#64748b;">${escapeHtml(this.subheading)}</p>
+            <div id="reviora-all-reviews-summary" style="display:none;"></div>
           </div>
-          <div class="reviora-list">
-            ${DEMO_CARDS.map((c) => `
-              <div class="reviora-card">
-                <div class="reviora-card-top">
-                  <div class="reviora-author-meta">
-                    <div class="reviora-avatar">${c.authorName.slice(0, 2).toUpperCase()}</div>
-                    <div class="reviora-author-details">
-                      <div class="reviora-author-name-row">
-                        <span class="reviora-author">${c.authorName}</span>
-                        <span class="reviora-verified-badge">✓ Verified</span>
-                      </div>
-                      <div>${renderStarsSvg(c.rating || 5, this.starColor, 14)}</div>
-                    </div>
-                  </div>
-                  <span class="reviora-date">Recent order</span>
-                </div>
-                <h3 class="reviora-card-title">${c.title}</h3>
-                <div class="reviora-card-body">${c.body}</div>
-              </div>
-            `).join("")}
+          <div class="reviora-list" id="reviora-all-reviews-list">
+            <div style="text-align:center;padding:32px;color:#94a3b8;font-size:14px;">Loading reviews...</div>
           </div>
         </div>
       `;
+
+      try {
+        const res = await fetch(`/apps/reviora/api/reviews?shop=${encodeURIComponent(this.shop)}&limit=50`);
+        if (res.ok) {
+          const data = await res.json();
+          const reviews = (data && data.reviews) || [];
+          this.renderReviews(reviews);
+        } else {
+          this.renderReviews([]);
+        }
+      } catch (err) {
+        this.renderReviews([]);
+      }
+    }
+
+    renderReviews(reviews) {
+      const listEl = this.querySelector("#reviora-all-reviews-list");
+      const summaryEl = this.querySelector("#reviora-all-reviews-summary");
+      if (!listEl) return;
+
+      if (!reviews || reviews.length === 0) {
+        if (summaryEl) summaryEl.style.display = "none";
+        listEl.innerHTML = `
+          <div style="text-align:center;padding:48px 24px;color:#64748b;font-size:14px;">
+            <p style="margin:0 0 6px 0;font-weight:600;color:#0f172a;font-size:16px;">No reviews collected yet</p>
+            <p style="margin:0;font-size:13px;">Customer reviews will appear here once verified.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const totalRating = reviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0);
+      const avgRating = (totalRating / reviews.length).toFixed(1);
+
+      if (summaryEl) {
+        summaryEl.style.display = "inline-flex";
+        summaryEl.innerHTML = `
+          <div style="display:inline-flex;align-items:center;gap:16px;background:#f8fafc;padding:12px 24px;border-radius:999px;border:1px solid #e2e8f0;">
+            <span style="font-size:28px;font-weight:800;color:#0f172a;">${avgRating}</span>
+            <div>
+              <div>${renderStarsSvg(avgRating, this.starColor, 16)}</div>
+              <div style="font-size:12px;color:#64748b;">From ${reviews.length} customer review${reviews.length > 1 ? "s" : ""}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      listEl.innerHTML = reviews.map((c) => `
+        <div class="reviora-card">
+          <div class="reviora-card-top">
+            <div class="reviora-author-meta">
+              <div class="reviora-avatar">${escapeHtml((c.authorName || "C").slice(0, 2).toUpperCase())}</div>
+              <div class="reviora-author-details">
+                <div class="reviora-author-name-row">
+                  <span class="reviora-author">${escapeHtml(c.authorName || "Customer")}</span>
+                  ${c.verified ? '<span class="reviora-verified-badge">✓ Verified</span>' : ""}
+                </div>
+                <div>${renderStarsSvg(c.rating || 5, this.starColor, 14)}</div>
+              </div>
+            </div>
+            ${c.createdAt ? `<span class="reviora-date">${new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>` : ""}
+          </div>
+          ${c.title ? `<h3 class="reviora-card-title">${escapeHtml(c.title)}</h3>` : ""}
+          <div class="reviora-card-body">${escapeHtml(c.body || "")}</div>
+        </div>
+      `).join("");
     }
   }
 
@@ -2023,24 +2028,6 @@
         "https://reviora-ef66.onrender.com";
 
       this.storageKey = `reviora_qa_${this.shop}_${this.productId}`;
-
-      this.defaultQA = [
-        {
-          q: "How does the sizing run for this product?",
-          asker: "Verified Customer • 2 days ago",
-          a: "It fits true to size! If you prefer a more relaxed or loose fit, we recommend ordering one size up.",
-          answerer: "Store Team",
-          isPending: false,
-        },
-        {
-          q: "Is this item covered under warranty?",
-          asker: "Verified Customer • 1 week ago",
-          a: "Yes! All authentic items purchased directly from our store are covered by our 1-year replacement warranty.",
-          answerer: "Store Team",
-          isPending: false,
-        },
-      ];
-
       this.serverQuestions = [];
       this.render();
       this.attachListeners();
@@ -2101,10 +2088,7 @@
       if (this.serverQuestions && this.serverQuestions.length > 0) {
         return [...customLocal, ...this.serverQuestions];
       }
-      if (customLocal.length > 0) {
-        return [...customLocal, ...this.defaultQA];
-      }
-      return this.defaultQA;
+      return customLocal;
     }
 
     render() {

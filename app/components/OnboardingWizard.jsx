@@ -1317,12 +1317,12 @@ export function OnboardingWizard({
                   </div>
                   <div style={{ fontSize: "13px", color: themeVerified ? "#008060" : "#6D7175", marginBottom: "12px", lineHeight: 1.4 }}>
                     {themeVerified
-                      ? "✓ Reviora Reviews app embed is enabled and verified in your theme. You can proceed to complete setup."
-                      : "The Reviora Reviews app embed must be enabled in your theme editor before you can continue."}
+                      ? "✓ Reviora is enabled and verified in your theme. You are ready to complete setup."
+                      : "Click 'Enable App Embed' above and save your theme. You can verify connection below or proceed directly to complete setup."}
                   </div>
                   {!themeVerified && verificationError && (
-                    <div style={{ padding: "8px 12px", backgroundColor: "#FFF4F2", border: "1px solid #FED3D1", borderRadius: "6px", color: "#D72C0D", fontSize: "12px", marginBottom: "12px" }}>
-                      ⚠️ {verificationError}
+                    <div style={{ padding: "8px 12px", backgroundColor: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: "6px", color: "#0369A1", fontSize: "12px", marginBottom: "12px" }}>
+                      ℹ️ {verificationError}
                     </div>
                   )}
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
@@ -1399,20 +1399,20 @@ export function OnboardingWizard({
               </button>
               <button
                 type="button"
-                disabled={!themeVerified}
                 onClick={() => changeStep(5)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "6px",
                   padding: "9px 18px",
-                  backgroundColor: themeVerified ? "#008060" : "#E4E5E7",
-                  color: themeVerified ? "#FFFFFF" : "#8C9196",
+                  backgroundColor: "#008060",
+                  color: "#FFFFFF",
                   border: "none",
                   borderRadius: "6px",
                   fontSize: "13px",
                   fontWeight: "600",
-                  cursor: themeVerified ? "pointer" : "not-allowed",
+                  cursor: "pointer",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
                 }}
               >
                 Next: Complete Setup <ArrowRight size={14} />

@@ -31,10 +31,12 @@ export const loader = async ({ request }) => {
   const shopSettings = await getShopSettings(session.shop);
   const isOnboardingCompleted = Boolean(shopSettings?.onboardingCompleted);
 
-  // If onboarding is in progress and merchant visits another page, redirect to onboarding wizard
+  // If onboarding is not completed, route main app entry to onboarding wizard unless user navigated to a specific sub-page
   if (!isOnboardingCompleted && !url.pathname.startsWith("/app/onboarding")) {
-    const params = new URLSearchParams(url.searchParams);
-    return redirect(`/app/onboarding?${params.toString()}`);
+    if (url.pathname === "/app" || url.pathname === "/app/" || url.searchParams.get("onboarding") === "true") {
+      const params = new URLSearchParams(url.searchParams);
+      return redirect(`/app/onboarding?${params.toString()}`);
+    }
   }
 
   // eslint-disable-next-line no-undef
@@ -62,14 +64,12 @@ export default function App() {
   const location = useLocation();
 
   const apiKey = data?.apiKey;
-  const onboardingCompleted = data?.onboardingCompleted;
 
   // Immediate skeleton display whenever page is loading
   const isLoading = navigation.state === "loading";
 
-  // Hide all navigations when onboarding is in progress
+  // Hide app nav when actively in the onboarding wizard route
   const isOnboardingInProgress =
-    !onboardingCompleted ||
     location.pathname.startsWith("/app/onboarding") ||
     location.search.includes("onboarding=true");
 

@@ -1,6 +1,5 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse, useRouteError, useLoaderData } from "react-router";
 import revioraStyles from "./reviora-admin.css?url";
-import { ZohoSalesIQ } from "./components/ZohoSalesIQ.jsx";
 import process from "process";
 
 export const links = () => [
@@ -50,7 +49,6 @@ export default function App() {
         <Outlet />
         <ScrollRestoration />
         <Scripts />
-        <ZohoSalesIQ />
       </body>
     </html>
   );

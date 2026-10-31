@@ -2,29 +2,35 @@
 
 {% assign target_product = block.settings.product | default: product %}
 {% assign app_rating = target_product.metafields.app.rating.value %}
-{% assign raw_rating = app_rating.value | default: app_rating | default: target_product.metafields.reviora.avg_rating.value | default: 5.0 %}
-{% assign avg_rating = raw_rating | round: 1 %}
 {% assign review_count = target_product.metafields.app.rating_count.value | default: target_product.metafields.reviora.review_count.value | default: 0 %}
 
-{% assign template_text = block.settings.badge_text | default: '{rating}/5 from {count}+ Verified Buyers' %}
-{% assign formatted_text = template_text | replace: '{rating}', avg_rating | replace: '{count}', review_count %}
+{% if review_count > 0 %}
+  {% assign raw_rating = app_rating.value | default: app_rating | default: target_product.metafields.reviora.avg_rating.value | default: 5.0 %}
+  {% assign avg_rating = raw_rating | round: 1 %}
+  {% assign template_text = block.settings.badge_text | default: '{rating}/5 from {count}+ Verified Buyers' %}
+  {% assign formatted_text = template_text | replace: '{rating}', avg_rating | replace: '{count}', review_count %}
 
-{% unless block.settings.hide_if_empty and review_count == 0 %}
-<div class="reviora-trust-badge-block" style="text-align: {{ block.settings.alignment | default: 'center' }}; margin: {{ block.settings.margin_top | default: 12 }}px 0 {{ block.settings.margin_bottom | default: 12 }}px 0;">
-  <div class="reviora-trust-badge-pill" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: {{ block.settings.bg_color | default: '#f8fafc' }}; border: 1px solid {{ block.settings.border_color | default: '#e2e8f0' }}; font-size: 13px; font-weight: 600; color: {{ block.settings.accent_color | default: '#0f172a' }};">
-    <span style="color: {{ block.settings.star_color | default: '#FFB800' }}; display: inline-flex; align-items: center;">
-      {% render 'stars', rating: avg_rating %}
-    </span>
-    <span>{{ formatted_text }}</span>
-    {% if block.settings.show_verified != false %}
-      <span style="color: {{ block.settings.badge_color | default: '#059669' }}; display: inline-flex; align-items: center; gap: 3px; font-size: 11px;">
-        <svg viewBox="0 0 24 24" style="width: 13px; height: 13px; fill: currentColor;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-        100% Verified
+  <div class="reviora-trust-badge-block" style="text-align: {{ block.settings.alignment | default: 'center' }}; margin: {{ block.settings.margin_top | default: 12 }}px 0 {{ block.settings.margin_bottom | default: 12 }}px 0;">
+    <div class="reviora-trust-badge-pill" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: {{ block.settings.bg_color | default: '#f8fafc' }}; border: 1px solid {{ block.settings.border_color | default: '#e2e8f0' }}; font-size: 13px; font-weight: 600; color: {{ block.settings.accent_color | default: '#0f172a' }};">
+      <span style="color: {{ block.settings.star_color | default: '#FFB800' }}; display: inline-flex; align-items: center;">
+        {% render 'stars', rating: avg_rating %}
       </span>
-    {% endif %}
+      <span>{{ formatted_text }}</span>
+      {% if block.settings.show_verified != false %}
+        <span style="color: {{ block.settings.badge_color | default: '#059669' }}; display: inline-flex; align-items: center; gap: 3px; font-size: 11px;">
+          <svg viewBox="0 0 24 24" style="width: 13px; height: 13px; fill: currentColor;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+          100% Verified
+        </span>
+      {% endif %}
+    </div>
   </div>
-</div>
-{% endunless %}
+{% elsif request.design_mode %}
+  <div class="reviora-trust-badge-block" style="text-align: {{ block.settings.alignment | default: 'center' }}; margin: 12px 0;">
+    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #f1f5f9; border: 1px dashed #cbd5e1; font-size: 12px; color: #64748b;">
+      <span>Trust Badge (Displayed once product has verified reviews)</span>
+    </div>
+  </div>
+{% endif %}
 
 {% schema %}
 {
@@ -48,7 +54,7 @@
       "type": "checkbox",
       "id": "hide_if_empty",
       "label": "Hide if 0 reviews",
-      "default": false
+      "default": true
     },
     {
       "type": "checkbox",

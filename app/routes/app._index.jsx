@@ -336,11 +336,7 @@ export default function DashboardPage() {
   };
 
   const handleContactSupport = () => {
-    if (window.$zoho?.salesiq?.floatwindow) {
-      window.$zoho.salesiq.floatwindow.visible("show");
-    } else {
-      window.open("mailto:support@reviora.com?subject=Support%20Inquiry%20-%20Reviora", "_blank");
-    }
+    window.open("mailto:support@reviora.com?subject=Support%20Inquiry%20-%20Reviora", "_blank");
   };
 
   // If app was installed first time and onboarding is incomplete, enforce unskippable wizard
@@ -378,12 +374,6 @@ export default function DashboardPage() {
             </s-paragraph>
           </s-banner>
         )}
-
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <s-button variant="secondary" onClick={() => navigate("/app/onboarding")}>
-            Replay Setup Guide ↗
-          </s-button>
-        </div>
 
         {/* KPI Cards Grid */}
         <s-grid gridTemplateColumns="repeat(auto-fit, minmax(220px, 1fr))" gap="base">

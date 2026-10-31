@@ -38,7 +38,6 @@ export const action = async ({ request }) => {
   // Requesting Pro Plan: Create subscription charge via GraphQL & return confirmationUrl for top-level redirect
   if (plan === PLAN_PRO || plan === "PRO") {
     try {
-      const isTestEnv = process.env.NODE_ENV !== "production";
       const isTestParam = formData.get("isTest") === "true";
 
       // Detect if store is a partner development store so test billing is used
@@ -60,56 +59,73 @@ export const action = async ({ request }) => {
         console.warn("Could not check if shop is development store:", shopPlanErr?.message || shopPlanErr);
       }
 
-      const testFlag = isTestEnv || isTestParam || isDevStore;
+      // During app review and on test stores, Shopify strictly requires test: true.
+      // Until an app is published on the Shopify App Store, live billing (test: false) fails.
+      let testFlag = true;
+      if (process.env.NODE_ENV === "production" && !isDevStore && !isTestParam) {
+        testFlag = process.env.FORCE_LIVE_BILLING === "true";
+      }
+
       const cleanShop = session.shop.replace(".myshopify.com", "");
       const apiKey = process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416";
       const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/billing`;
 
-      const response = await admin.graphql(
-        `#graphql
-        mutation AppSubscriptionCreate(
-          $name: String!
-          $returnUrl: URL!
-          $test: Boolean
-          $lineItems: [AppSubscriptionLineItemInput!]!
-        ) {
-          appSubscriptionCreate(
-            name: $name
-            returnUrl: $returnUrl
-            test: $test
-            lineItems: $lineItems
+      const executeSubscriptionMutation = async (useTest) => {
+        const res = await admin.graphql(
+          `#graphql
+          mutation AppSubscriptionCreate(
+            $name: String!
+            $returnUrl: URL!
+            $test: Boolean
+            $lineItems: [AppSubscriptionLineItemInput!]!
           ) {
-            appSubscription {
-              id
+            appSubscriptionCreate(
+              name: $name
+              returnUrl: $returnUrl
+              test: $test
+              lineItems: $lineItems
+            ) {
+              appSubscription {
+                id
+              }
+              confirmationUrl
+              userErrors {
+                field
+                message
+              }
             }
-            confirmationUrl
-            userErrors {
-              field
-              message
-            }
-          }
-        }`,
-        {
-          variables: {
-            name: "Pro",
-            returnUrl,
-            test: testFlag,
-            lineItems: [
-              {
-                plan: {
-                  appRecurringPricingDetails: {
-                    price: { amount: 4.99, currencyCode: "USD" },
-                    interval: "EVERY_30_DAYS",
+          }`,
+          {
+            variables: {
+              name: "Pro",
+              returnUrl,
+              test: useTest,
+              lineItems: [
+                {
+                  plan: {
+                    appRecurringPricingDetails: {
+                      price: { amount: 4.99, currencyCode: "USD" },
+                      interval: "EVERY_30_DAYS",
+                    },
                   },
                 },
-              },
-            ],
-          },
-        }
-      );
+              ],
+            },
+          }
+        );
+        return await res.json();
+      };
 
-      const json = await response.json();
-      const userErrors = json?.data?.appSubscriptionCreate?.userErrors;
+      let json = await executeSubscriptionMutation(testFlag);
+      let userErrors = json?.data?.appSubscriptionCreate?.userErrors;
+
+      // If failed with live charge (e.g. unpublished app / test account), retry automatically with test: true
+      if (userErrors && userErrors.length > 0 && !testFlag) {
+        console.warn("Live subscription creation failed, retrying with test: true:", userErrors);
+        json = await executeSubscriptionMutation(true);
+        userErrors = json?.data?.appSubscriptionCreate?.userErrors;
+      }
+
       if (userErrors && userErrors.length > 0) {
         const userErrMsg = userErrors.map((e) => e.message).join(", ");
         console.error("Shopify billing userErrors:", userErrMsg);
@@ -127,9 +143,14 @@ export const action = async ({ request }) => {
       if (err instanceof Response) {
         try {
           const errorJson = await err.json();
-          errorMessage = errorJson?.errors?.[0]?.message || (typeof errorJson?.errors === "string" ? errorJson.errors : null) || errorJson?.message || err.statusText || errorMessage;
+          errorMessage = errorJson?.errors?.[0]?.message || (typeof errorJson?.errors === "string" ? errorJson.errors : null) || errorJson?.message || errorMessage;
         } catch {
-          errorMessage = err.statusText || errorMessage;
+          try {
+            const text = await err.text();
+            if (text && text.length < 200) errorMessage = text;
+          } catch {
+            // ignore
+          }
         }
       } else if (err?.message) {
         errorMessage = err.message;
