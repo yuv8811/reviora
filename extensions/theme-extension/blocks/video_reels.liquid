@@ -1,5 +1,18 @@
 {{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
+<script>
+  window.__REVIORA_APP_EMBED_ENABLED__ = true;
+  document.documentElement.classList.add('reviora-embed-active');
+  if (document.body) document.body.classList.add('reviora-embed-active');
+</script>
+<style>
+  .reviora-app-block,
+  reviora-reviews-carousel {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+</style>
 
 <div class="page-width reviora-app-block" style="width: 100%; max-width: 1200px; margin: {{ block.settings.margin_top | default: 40 }}px auto {{ block.settings.margin_bottom | default: 40 }}px auto; padding: 0 16px; box-sizing: border-box;">
   {% assign target_product_id = "all" %}

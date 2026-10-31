@@ -1138,11 +1138,7 @@
         this.apiUrl = cleanBaseUrl(customApi);
       }
 
-      const isThemeEditor = Boolean(window.Shopify && window.Shopify.designMode);
-      if (isThemeEditor) {
-        this.render();
-      }
-
+      this.render();
       this.fetchCarouselData();
     }
 
