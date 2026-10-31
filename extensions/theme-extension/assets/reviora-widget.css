@@ -3,11 +3,25 @@
    Modern, conversion-focused, accessible & responsive
    ========================================================= */
 
-/* Floating tab and popups only show when enabled */
+/* Require active App Embed block to display any Reviora storefront widgets */
+html:not(.reviora-embed-active) .reviora-app-block,
+html:not(.reviora-embed-active) .reviora-star-badge-block,
+html:not(.reviora-embed-active) reviora-reviews-widget,
+html:not(.reviora-embed-active) reviora-reviews-carousel,
 html:not(.reviora-embed-active) reviora-floating-tab,
 html:not(.reviora-embed-active) reviora-review-popups,
+html:not(.reviora-embed-active) reviora-ugc-media-grid,
+html:not(.reviora-embed-active) reviora-all-reviews-page,
+html:not(.reviora-embed-active) reviora-qa-widget,
+body:not(.reviora-embed-active) .reviora-app-block,
+body:not(.reviora-embed-active) .reviora-star-badge-block,
+body:not(.reviora-embed-active) reviora-reviews-widget,
+body:not(.reviora-embed-active) reviora-reviews-carousel,
 body:not(.reviora-embed-active) reviora-floating-tab,
-body:not(.reviora-embed-active) reviora-review-popups {
+body:not(.reviora-embed-active) reviora-review-popups,
+body:not(.reviora-embed-active) reviora-ugc-media-grid,
+body:not(.reviora-embed-active) reviora-all-reviews-page,
+body:not(.reviora-embed-active) reviora-qa-widget {
   display: none !important;
 }
 
@@ -1267,45 +1281,21 @@ body.reviora-modal-open {
   margin: 0;
 }
 
-/* Block wrappers centering */
-.reviora-app-block,
-.reviora-ugc-grid-block,
-.reviora-all-reviews-block {
-  width: 100%;
-  max-width: 1200px;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  box-sizing: border-box;
-}
-
-reviora-reviews-widget,
-reviora-reviews-carousel,
-reviora-ugc-media-grid,
-reviora-all-reviews-page,
-reviora-qa-widget {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 /* =========================================================
    CAROUSEL WIDGETS (<reviora-reviews-carousel>)
    Cards Carousel, Testimonials Carousel, Video Reels
    ========================================================= */
 .reviora-carousel-block {
-  width: 100%;
   max-width: 1200px;
-  margin: 32px auto;
+  margin: 48px auto;
   padding: 0 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--reviora-text-main);
-  box-sizing: border-box;
 }
 
 .reviora-carousel-header {
-  text-align: center !important;
-  margin-bottom: 28px;
-  width: 100%;
+  text-align: center;
+  margin-bottom: 32px;
 }
 
 .reviora-carousel-title {
@@ -1314,7 +1304,6 @@ reviora-qa-widget {
   letter-spacing: -0.02em;
   margin: 0 0 8px 0;
   color: var(--reviora-text-main);
-  text-align: center !important;
 }
 
 .reviora-carousel-sub {
@@ -1322,14 +1311,12 @@ reviora-qa-widget {
   color: var(--reviora-text-muted);
   max-width: 580px;
   margin: 0 auto;
-  text-align: center !important;
 }
 
 .reviora-carousel-track-wrap {
   position: relative;
   overflow: hidden;
   padding: 10px 0 20px 0;
-  width: 100%;
 }
 
 .reviora-carousel-track {
@@ -1340,10 +1327,6 @@ reviora-qa-widget {
   scrollbar-width: none;
   -ms-overflow-style: none;
   padding: 6px 4px;
-}
-
-.reviora-carousel-track.is-centered {
-  justify-content: center;
 }
 
 .reviora-carousel-track::-webkit-scrollbar {

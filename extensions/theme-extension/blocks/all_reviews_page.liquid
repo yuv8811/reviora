@@ -1,20 +1,7 @@
 {{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
-<script>
-  window.__REVIORA_APP_EMBED_ENABLED__ = true;
-  document.documentElement.classList.add('reviora-embed-active');
-  if (document.body) document.body.classList.add('reviora-embed-active');
-</script>
-<style>
-  .reviora-all-reviews-block,
-  reviora-all-reviews-page {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-</style>
 
-<div class="page-width reviora-all-reviews-block" style="width: 100%; max-width: 1200px; margin: {{ block.settings.margin_top | default: 32 }}px auto {{ block.settings.margin_bottom | default: 32 }}px auto; padding: 0 16px; box-sizing: border-box;">
+<div class="reviora-all-reviews-block" style="margin: {{ block.settings.margin_top | default: 32 }}px 0 {{ block.settings.margin_bottom | default: 32 }}px 0;">
   <reviora-all-reviews-page
     data-shop="{{ shop.myshopify_domain | default: shop.domain }}"
     data-heading="{{ block.settings.heading | default: 'All Store Reviews' }}"
