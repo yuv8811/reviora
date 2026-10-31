@@ -160,15 +160,16 @@ export async function getAdminReviews(shop, { status, rating, search, page = 1, 
 
   // Filtering
   if (status && status !== "ALL") {
-    allReviews = allReviews.filter((r) => r.status === status);
+    const sUpper = String(status).toUpperCase();
+    allReviews = allReviews.filter((r) => String(r.status || "").toUpperCase() === sUpper);
   }
 
   if (rating) {
-    allReviews = allReviews.filter((r) => r.rating === Number(rating));
+    allReviews = allReviews.filter((r) => Number(r.rating) === Number(rating));
   }
 
   if (search) {
-    const s = search.toLowerCase();
+    const s = String(search).toLowerCase().trim();
     allReviews = allReviews.filter((r) => {
       return (
         (r.authorName && r.authorName.toLowerCase().includes(s)) ||

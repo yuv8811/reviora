@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useLoaderData, useFetcher, useSubmit, useNavigation, useNavigate } from "react-router";
+import { useState, useEffect, useMemo } from "react";
+import { useLoaderData, useFetcher, useNavigation, useNavigate } from "react-router";
 
 import { authenticate } from "../shopify.server.js";
 import { getAdminReviews, deleteReview, verifyCustomerByEmail, syncProductReviewMetafields } from "../models/review.server.js";
@@ -143,12 +143,11 @@ export const action = async ({ request }) => {
 
 export default function ReviewsManagerPage() {
   const loaderData = useLoaderData();
-  const reviews = loaderData?.reviews || [];
-  const questions = loaderData?.questions || [];
+  const reviews = useMemo(() => loaderData?.reviews || [], [loaderData?.reviews]);
+  const questions = useMemo(() => loaderData?.questions || [], [loaderData?.questions]);
   const status = loaderData?.status || "ALL";
   const search = loaderData?.search || "";
   const fetcher = useFetcher();
-  const submit = useSubmit();
   const navigation = useNavigation();
   const navigate = useNavigate();
   const isFiltering = navigation.state === "loading" && navigation.location?.search !== "";
@@ -221,18 +220,57 @@ export default function ReviewsManagerPage() {
     }
   };
 
-  const handleApplyFilter = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    const params = new URLSearchParams();
-    if (searchQuery.trim()) params.set("search", searchQuery.trim());
-    if (statusFilter !== "ALL") params.set("status", statusFilter);
-    submit(params, { method: "GET" });
-  };
+  // Sync state if loaderData changes from URL
+  useEffect(() => {
+    if (status) setStatusFilter(status);
+  }, [status]);
+
+  useEffect(() => {
+    if (search !== undefined) setSearchQuery(search);
+  }, [search]);
+
+  // Client-side instant filter on reviews
+  const filteredReviews = useMemo(() => {
+    return reviews.filter((r) => {
+      // 1. Status Filter
+      if (statusFilter && statusFilter !== "ALL") {
+        const rStatus = String(r.status || "").toUpperCase();
+        const fStatus = String(statusFilter).toUpperCase();
+        if (rStatus !== fStatus) return false;
+      }
+
+      // 2. Search Query Filter
+      if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const authorName = (r.authorName || "").toLowerCase();
+        const authorEmail = (r.authorEmail || "").toLowerCase();
+        const title = (r.title || "").toLowerCase();
+        const body = (r.body || "").toLowerCase();
+        const productTitle = (r.productTitle || "").toLowerCase();
+
+        const matches =
+          authorName.includes(q) ||
+          authorEmail.includes(q) ||
+          title.includes(q) ||
+          body.includes(q) ||
+          productTitle.includes(q);
+
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [reviews, statusFilter, searchQuery]);
 
   const handleClearFilter = () => {
     setSearchQuery("");
     setStatusFilter("ALL");
-    submit(new URLSearchParams(), { method: "GET" });
+    if (typeof window === "undefined") return;
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.delete("search");
+    currentParams.delete("status");
+    currentParams.delete("page");
+    navigate(`?${currentParams.toString()}`);
   };
 
   const handleOpenReply = (review) => {
@@ -370,7 +408,7 @@ export default function ReviewsManagerPage() {
                 fontWeight: "700",
               }}
             >
-              {reviews.length}
+              {filteredReviews.length}
             </span>
           </button>
 
@@ -415,11 +453,12 @@ export default function ReviewsManagerPage() {
           <>
             {/* Filters Card */}
             <s-section>
-              <s-grid gridTemplateColumns="1fr 200px auto auto" gap="small" alignItems="end">
+              <s-grid gridTemplateColumns="1fr 220px auto" gap="small" alignItems="end">
                 <s-text-field
                   label="Search Reviews"
                   value={searchQuery}
                   onInput={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search reviewer name, email, or keywords..."
                 />
 
@@ -434,10 +473,6 @@ export default function ReviewsManagerPage() {
                     </s-option>
                   ))}
                 </s-select>
-
-                <s-button variant="primary" onClick={handleApplyFilter} loading={isFiltering ? true : undefined}>
-                  Apply Filters
-                </s-button>
 
                 {(searchQuery || statusFilter !== "ALL") && (
                   <s-button variant="primary" tone="critical" onClick={handleClearFilter} disabled={isFiltering ? true : undefined}>
@@ -487,7 +522,7 @@ export default function ReviewsManagerPage() {
             )}
 
             {/* Review Cards Listing */}
-            {reviews.length === 0 ? (
+            {filteredReviews.length === 0 ? (
               <s-section>
                 <s-box padding="large">
                   <s-stack gap="extra-tight" alignItems="center">
@@ -502,7 +537,7 @@ export default function ReviewsManagerPage() {
               </s-section>
             ) : (
               <s-stack gap="base">
-                {reviews.map((r) => (
+                {filteredReviews.map((r) => (
                   <ReviewCard
                     key={r.id}
                     review={r}
