@@ -1434,12 +1434,20 @@
             ${demoNoticeHtml}
           </div>
 
-          <div class="reviora-carousel-track-wrap">
-            <button type="button" class="reviora-carousel-nav-btn reviora-carousel-prev" aria-label="Previous">&lsaquo;</button>
-            <div class="reviora-carousel-track" id="reviora-carousel-track">
+          <div class="reviora-carousel-track-wrap" style="position:relative !important;overflow:visible !important;padding:12px 64px 24px 64px !important;box-sizing:border-box !important;">
+            <div class="reviora-carousel-track" id="reviora-carousel-track" style="display:flex !important;gap:20px !important;overflow-x:auto !important;scroll-behavior:smooth !important;scrollbar-width:none !important;-ms-overflow-style:none !important;padding:8px 4px 12px 4px !important;box-sizing:border-box !important;">
               ${slidesHtml}
             </div>
-            <button type="button" class="reviora-carousel-nav-btn reviora-carousel-next" aria-label="Next">&rsaquo;</button>
+            <button type="button" class="reviora-carousel-nav-btn reviora-carousel-prev" aria-label="Previous" style="position:absolute !important;top:50% !important;transform:translateY(-50%) !important;left:8px !important;width:44px !important;height:44px !important;border-radius:50% !important;background:#ffffff !important;border:1px solid #e2e8f0 !important;box-shadow:0 4px 16px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06) !important;display:inline-flex !important;align-items:center !important;justify-content:center !important;cursor:pointer !important;z-index:9999 !important;padding:0 !important;outline:none !important;color:#0f172a !important;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;stroke:#0f172a;display:block;pointer-events:none;">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <button type="button" class="reviora-carousel-nav-btn reviora-carousel-next" aria-label="Next" style="position:absolute !important;top:50% !important;transform:translateY(-50%) !important;right:8px !important;width:44px !important;height:44px !important;border-radius:50% !important;background:#ffffff !important;border:1px solid #e2e8f0 !important;box-shadow:0 4px 16px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06) !important;display:inline-flex !important;align-items:center !important;justify-content:center !important;cursor:pointer !important;z-index:9999 !important;padding:0 !important;outline:none !important;color:#0f172a !important;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;stroke:#0f172a;display:block;pointer-events:none;">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
           </div>
         </div>
       `;
@@ -1453,12 +1461,24 @@
       const nextBtn = this.querySelector(".reviora-carousel-next");
       if (!track) return;
 
-      const scrollAmount = 320;
+      const scrollAmount = 330;
       if (prevBtn) {
-        prevBtn.onclick = () => track.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+        prevBtn.onclick = () => {
+          if (track.scrollLeft <= 10) {
+            track.scrollTo({ left: track.scrollWidth, behavior: "smooth" });
+          } else {
+            track.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+          }
+        };
       }
       if (nextBtn) {
-        nextBtn.onclick = () => track.scrollBy({ left: scrollAmount, behavior: "smooth" });
+        nextBtn.onclick = () => {
+          if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
+            track.scrollTo({ left: 0, behavior: "smooth" });
+          } else {
+            track.scrollBy({ left: scrollAmount, behavior: "smooth" });
+          }
+        };
       }
 
       // Autoplay if configured

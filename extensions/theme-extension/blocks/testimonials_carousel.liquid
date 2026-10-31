@@ -1,6 +1,91 @@
 {{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
 
+<style>
+  .reviora-carousel-track-wrap {
+    position: relative !important;
+    overflow: visible !important;
+    padding: 14px 64px 24px 64px !important;
+    box-sizing: border-box !important;
+  }
+  .reviora-carousel-track {
+    display: flex !important;
+    gap: 20px !important;
+    overflow-x: auto !important;
+    scroll-behavior: smooth !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 8px 4px 12px 4px !important;
+  }
+  .reviora-carousel-track::-webkit-scrollbar {
+    display: none !important;
+  }
+  .reviora-carousel-nav-btn {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #0f172a !important;
+    cursor: pointer !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+    padding: 0 !important;
+    outline: none !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .reviora-carousel-nav-btn:hover {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #0f172a !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.24) !important;
+    transform: translateY(-50%) scale(1.08) !important;
+  }
+  .reviora-carousel-nav-btn:active {
+    transform: translateY(-50%) scale(0.96) !important;
+  }
+  .reviora-carousel-nav-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+    stroke: currentColor !important;
+    stroke-width: 2.5 !important;
+    pointer-events: none !important;
+  }
+  .reviora-carousel-prev {
+    left: 8px !important;
+  }
+  .reviora-carousel-next {
+    right: 8px !important;
+  }
+  @media (max-width: 640px) {
+    .reviora-carousel-track-wrap {
+      padding: 10px 48px 20px 48px !important;
+    }
+    .reviora-carousel-nav-btn {
+      width: 36px !important;
+      height: 36px !important;
+    }
+    .reviora-carousel-nav-btn svg {
+      width: 16px !important;
+      height: 16px !important;
+    }
+    .reviora-carousel-prev {
+      left: 4px !important;
+    }
+    .reviora-carousel-next {
+      right: 4px !important;
+    }
+  }
+</style>
+
 <div class="reviora-app-block" style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0;">
   {% assign target_product_id = "all" %}
   {% if block.settings.product != blank and block.settings.product.handle != blank %}

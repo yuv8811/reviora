@@ -1315,8 +1315,9 @@ body.reviora-modal-open {
 
 .reviora-carousel-track-wrap {
   position: relative;
-  overflow: hidden;
-  padding: 10px 0 20px 0;
+  overflow: visible;
+  padding: 14px 64px 24px 64px;
+  box-sizing: border-box;
 }
 
 .reviora-carousel-track {
@@ -1326,7 +1327,7 @@ body.reviora-modal-open {
   scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 6px 4px;
+  padding: 8px 4px 12px 4px;
 }
 
 .reviora-carousel-track::-webkit-scrollbar {
@@ -1338,35 +1339,84 @@ body.reviora-modal-open {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #ffffff;
-  border: 1px solid var(--reviora-border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  display: flex;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  color: var(--reviora-text-main);
+  color: #0f172a;
   cursor: pointer;
-  z-index: 10;
-  transition: var(--reviora-transition);
+  z-index: 9999;
+  padding: 0;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .reviora-carousel-nav-btn:hover {
   background: #0f172a;
   color: #ffffff;
   border-color: #0f172a;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
   transform: translateY(-50%) scale(1.08);
 }
 
+.reviora-carousel-nav-btn:active {
+  transform: translateY(-50%) scale(0.96);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+}
+
+.reviora-carousel-nav-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
 .reviora-carousel-prev {
-  left: -6px;
+  left: 8px;
 }
 
 .reviora-carousel-next {
-  right: -6px;
+  right: 8px;
+}
+
+.reviora-carousel-prev:hover svg {
+  transform: translateX(-1px);
+}
+
+.reviora-carousel-next:hover svg {
+  transform: translateX(1px);
+}
+
+@media (max-width: 640px) {
+  .reviora-carousel-track-wrap {
+    padding: 10px 48px 20px 48px;
+  }
+  .reviora-carousel-nav-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .reviora-carousel-nav-btn svg {
+    width: 17px;
+    height: 17px;
+    stroke-width: 2.2;
+  }
+  .reviora-carousel-prev {
+    left: 4px;
+  }
+  .reviora-carousel-next {
+    right: 4px;
+  }
 }
 
 /* CARDS CAROUSEL SLIDE CARD */
