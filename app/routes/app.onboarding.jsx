@@ -88,7 +88,17 @@ async function verifyAppEmbedInTheme(admin, session) {
 
     let isEmbedOrWidgetEnabled = false;
 
-    // Helper to inspect parsed blocks
+    // Helper to check if a block type uniquely belongs to Reviora
+    const isRevioraType = (type) => {
+      const t = String(type || "").toLowerCase();
+      return (
+        t.includes("reviora") ||
+        t.includes("65b30aae") ||
+        t.includes("f79eb2d3832f37be2bb3a5c7c1efd416")
+      );
+    };
+
+    // Helper to inspect parsed blocks in settings_data.json
     const checkBlocks = (parsed) => {
       if (!parsed) return false;
       const blocks = {
@@ -98,24 +108,17 @@ async function verifyAppEmbedInTheme(admin, session) {
       for (const key of Object.keys(blocks)) {
         const blk = blocks[key];
         if (!blk) continue;
-        const type = String(blk.type || "").toLowerCase();
-        // Check for app embed or any Reviora block (review_widget, star_rating, trust_badge, app_embed, etc.)
-        const isReviora =
-          type.includes("reviora") ||
-          type.includes("app_embed") ||
-          type.includes("review_widget") ||
-          type.includes("star_rating") ||
-          type.includes("trust_badge") ||
-          type.includes("theme-extension") ||
-          type.includes("65b30aae");
-        if (isReviora && blk.disabled !== true) {
+        if (isRevioraType(blk.type)) {
+          if (blk.disabled === true || blk.disabled === "true") {
+            continue;
+          }
           return true;
         }
       }
       return false;
     };
 
-    // Helper to check sections in templates (e.g. templates/product.json)
+    // Helper to check sections in templates (e.g. templates/product.json, index.json)
     const checkTemplateSections = (parsed) => {
       if (!parsed || !parsed.sections) return false;
       for (const secKey of Object.keys(parsed.sections)) {
@@ -124,15 +127,10 @@ async function verifyAppEmbedInTheme(admin, session) {
         for (const blkKey of Object.keys(sec.blocks)) {
           const blk = sec.blocks[blkKey];
           if (!blk) continue;
-          const type = String(blk.type || "").toLowerCase();
-          const isReviora =
-            type.includes("reviora") ||
-            type.includes("review_widget") ||
-            type.includes("star_rating") ||
-            type.includes("trust_badge") ||
-            type.includes("theme-extension") ||
-            type.includes("65b30aae");
-          if (isReviora && blk.disabled !== true) {
+          if (isRevioraType(blk.type)) {
+            if (blk.disabled === true || blk.disabled === "true") {
+              continue;
+            }
             return true;
           }
         }
@@ -161,34 +159,23 @@ async function verifyAppEmbedInTheme(admin, session) {
       return null;
     };
 
-    // Check config/settings_data.json
+    // 1. Check config/settings_data.json (App Embeds)
     if (settingsContent) {
       const parsedSettings = parseJsonSafely(settingsContent);
       if (checkBlocks(parsedSettings)) {
         isEmbedOrWidgetEnabled = true;
-      } else if (
-        typeof settingsContent === "string" &&
-        (settingsContent.includes("app_embed") || settingsContent.includes("reviora") || settingsContent.includes("65b30aae")) &&
-        !settingsContent.includes('"disabled":true')
-      ) {
-        isEmbedOrWidgetEnabled = true;
       }
     }
 
-    // Check templates/product.json
+    // 2. Check templates/product.json (Product template blocks)
     if (!isEmbedOrWidgetEnabled && productTemplateContent) {
       const parsedProduct = parseJsonSafely(productTemplateContent);
       if (checkTemplateSections(parsedProduct) || checkBlocks(parsedProduct)) {
         isEmbedOrWidgetEnabled = true;
-      } else if (
-        typeof productTemplateContent === "string" &&
-        (productTemplateContent.includes("review_widget") || productTemplateContent.includes("reviora") || productTemplateContent.includes("star_rating") || productTemplateContent.includes("65b30aae"))
-      ) {
-        isEmbedOrWidgetEnabled = true;
       }
     }
 
-    // Check templates/index.json
+    // 3. Check templates/index.json (Homepage blocks)
     if (!isEmbedOrWidgetEnabled && indexTemplateContent) {
       const parsedIndex = parseJsonSafely(indexTemplateContent);
       if (checkTemplateSections(parsedIndex) || checkBlocks(parsedIndex)) {

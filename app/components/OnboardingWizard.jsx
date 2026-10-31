@@ -1242,25 +1242,24 @@ export function OnboardingWizard({
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      disabled={themeVerified}
-                      onClick={themeVerified ? undefined : handleOpenAppEmbed}
+                      onClick={handleOpenAppEmbed}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "6px",
                         padding: "8px 14px",
-                        backgroundColor: themeVerified ? "#F1F2F4" : "#008060",
-                        color: themeVerified ? "#6D7175" : "#FFFFFF",
-                        border: themeVerified ? "1px solid #C9CCCF" : "none",
+                        backgroundColor: "#008060",
+                        color: "#FFFFFF",
+                        border: "none",
                         borderRadius: "6px",
                         fontSize: "12px",
                         fontWeight: "600",
-                        cursor: themeVerified ? "not-allowed" : "pointer",
+                        cursor: "pointer",
                       }}
                     >
                       {themeVerified ? (
                         <>
-                          <Check size={13} strokeWidth={2.5} color="#008060" /> App Embed Enabled
+                          <Check size={13} strokeWidth={2.5} color="#FFFFFF" /> Manage App Embed in Theme Editor <ExternalLink size={13} />
                         </>
                       ) : (
                         <>
@@ -1328,7 +1327,7 @@ export function OnboardingWizard({
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      disabled={isVerifying || themeVerified}
+                      disabled={isVerifying}
                       onClick={handleVerifyTheme}
                       style={{
                         display: "inline-flex",
@@ -1341,7 +1340,7 @@ export function OnboardingWizard({
                         borderRadius: "6px",
                         fontSize: "12px",
                         fontWeight: "600",
-                        cursor: themeVerified ? "default" : "pointer",
+                        cursor: isVerifying ? "wait" : "pointer",
                       }}
                     >
                       {isVerifying ? (
@@ -1350,7 +1349,7 @@ export function OnboardingWizard({
                         </>
                       ) : themeVerified ? (
                         <>
-                          <Check size={13} strokeWidth={3} /> Verified ({themeName || "Live Theme"})
+                          <Check size={13} strokeWidth={3} /> Verified ({themeName || "Live Theme"}) ⟳ Recheck
                         </>
                       ) : (
                         <>
