@@ -1,4 +1,7 @@
 import { authenticate, sessionStorage } from "../shopify.server";
+import { notifyAppUninstall } from "../services/slack.server.js";
+import { StoreReviews } from "../models/review.model.js";
+import { connectDB } from "../db.server.js";
 
 export const action = async ({ request }) => {
   let shop, topic;
@@ -16,6 +19,20 @@ export const action = async ({ request }) => {
   }
 
   console.log(`Received ${topic} webhook for ${shop}`);
+
+  // Notify Slack of uninstall & reset notification flag in DB so future reinstalls notify again
+  try {
+    await connectDB();
+    await StoreReviews.updateOne(
+      { shop },
+      { $set: { slackInstallNotifiedAt: null } }
+    );
+    notifyAppUninstall({ shop }).catch((e) =>
+      console.error("[Slack] Error sending uninstall alert:", e)
+    );
+  } catch (err) {
+    console.error("Error updating store state on uninstall:", err);
+  }
 
   // Webhook requests can trigger multiple times and after an app has already been uninstalled.
   try {

@@ -107,6 +107,11 @@ export const action = async ({ request }) => {
     }
   }
 
+  const authorized = formData.get("authorized");
+  if (authorized !== "true") {
+    return { error: "You must confirm that you have proper authorization and ownership to import these reviews." };
+  }
+
   const rawCsv = formData.get("rawCsv");
 
   if (!rawCsv || !rawCsv.trim()) {
@@ -199,6 +204,13 @@ export const action = async ({ request }) => {
 // Available review apps matching Judge.me list
 const REVIEW_APPS_LIST = [
   {
+    id: "judge_me",
+    name: "Judge.me",
+    bgColor: "#0D3349",
+    color: "#38BDF8",
+    logoText: "J.me",
+  },
+  {
     id: "loox",
     name: "Loox",
     bgColor: "#000000",
@@ -213,11 +225,11 @@ const REVIEW_APPS_LIST = [
     logoText: "yotpo.",
   },
   {
-    id: "air_reviews",
-    name: "Air Reviews",
-    bgColor: "#192248",
-    color: "#60A5FA",
-    logoText: "A",
+    id: "okendo",
+    name: "Okendo",
+    bgColor: "#000000",
+    color: "#FFFFFF",
+    logoText: "OKENDO",
   },
   {
     id: "klaviyo",
@@ -227,11 +239,11 @@ const REVIEW_APPS_LIST = [
     logoText: "⚑",
   },
   {
-    id: "areviews",
-    name: "Areviews",
-    bgColor: "#CBD5E1",
-    color: "#334155",
-    logoText: "🐳",
+    id: "shopify",
+    name: "Shopify Product Reviews",
+    bgColor: "#1C2024",
+    color: "#95BF47",
+    logoText: "🛍️",
   },
   {
     id: "trustoo",
@@ -240,51 +252,218 @@ const REVIEW_APPS_LIST = [
     color: "#FFFFFF",
     logoText: "T.",
   },
-  {
-    id: "doran",
-    name: "Doran",
-    bgColor: "#00966B",
-    color: "#FDE047",
-    logoText: "★",
-  },
-  {
-    id: "vitals",
-    name: "Vitals",
-    bgColor: "#4C1D95",
-    color: "#FFFFFF",
-    logoText: "vitals",
-  },
-  {
-    id: "judge_me",
-    name: "Judge.me",
-    bgColor: "#0D3349",
-    color: "#38BDF8",
-    logoText: "J.me",
-  },
-  {
-    id: "okendo",
-    name: "Okendo",
-    bgColor: "#000000",
-    color: "#FFFFFF",
-    logoText: "OKENDO",
-  },
-  {
-    id: "shopify",
-    name: "Shopify Product Reviews",
-    bgColor: "#1C2024",
-    color: "#95BF47",
-    logoText: "🛍️",
-  },
 ];
 
-// Available platforms matching Judge.me list
-const PLATFORMS_LIST = [
-  { id: "aliexpress", name: "AliExpress", bgColor: "#FF3838", color: "#FFFFFF", logoText: "Ali" },
-  { id: "amazon", name: "Amazon", bgColor: "#FFFFFF", color: "#111827", isAmazon: true },
-  { id: "etsy", name: "Etsy", bgColor: "#FFFFFF", color: "#F1641E", logoText: "Etsy", isEtsy: true },
-  { id: "google", name: "Google Customer Reviews", isGoogle: true },
-  { id: "meta", name: "Meta / Facebook Reviews", isMeta: true },
-];
+function ComplianceBanner() {
+  return (
+    <div
+      style={{
+        padding: "14px 16px",
+        backgroundColor: "#F0FDF4",
+        border: "1px solid #BBF7D0",
+        borderRadius: "8px",
+        marginBottom: "16px",
+      }}
+    >
+      <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+        <span style={{ color: "#16A34A", fontSize: "16px", lineHeight: "1.2" }}>🛡️</span>
+        <div style={{ fontSize: "13px", color: "#166534", lineHeight: "1.4" }}>
+          <strong>Duplicate only authorized product information:</strong> In compliance with Shopify App Store policy, Reviora only imports reviews that you own or have explicit authorization to use for products you sell. Importing customer reviews from competitors or unauthorized third-party sources is strictly prohibited.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthorizationCheckbox({ checked, onChange, label }) {
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        backgroundColor: checked ? "#F0FDF4" : "#F9FAFB",
+        border: checked ? "1px solid #86EFAC" : "1px solid #D2D5D8",
+        borderRadius: "8px",
+        transition: "all 0.15s ease",
+      }}
+    >
+      <label
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "10px",
+          cursor: "pointer",
+          fontSize: "13px",
+          color: "#202223",
+          userSelect: "none",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          style={{
+            marginTop: "2px",
+            width: "16px",
+            height: "16px",
+            accentColor: "#008060",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ lineHeight: 1.4 }}>
+          {label ||
+            "I confirm that I own these reviews or have proper authorization from the rights holder to import and display them on my store."}
+        </span>
+      </label>
+    </div>
+  );
+}
+
+function AppBrandIcon({ appId, size = 34 }) {
+  if (appId === "judge_me") {
+    return (
+      <img
+        src="/review_request/judgeme.png"
+        alt="Judge.me"
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: "6px",
+          display: "block",
+          flexShrink: 0,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        }}
+      />
+    );
+  }
+
+  if (appId === "loox") {
+    return (
+      <img
+        src="/review_request/loox.png"
+        alt="Loox"
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: "6px",
+          display: "block",
+          flexShrink: 0,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        }}
+      />
+    );
+  }
+
+  if (appId === "yotpo") {
+    return (
+      <img
+        src="/review_request/yotpo.png"
+        alt="Yotpo"
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: "6px",
+          display: "block",
+          flexShrink: 0,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        }}
+      />
+    );
+  }
+
+  if (appId === "okendo") {
+    return (
+      <img
+        src="/review_request/okendo.png"
+        alt="Yotpo"
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: "6px",
+          display: "block",
+          flexShrink: 0,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        }}
+      />
+    );
+  }
+
+  if (appId === "klaviyo") {
+    return (
+      <img
+        src="/review_request/klaviyo.png"
+        alt="Yotpo"
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: "6px",
+          display: "block",
+          flexShrink: 0,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        }}
+      />
+    );
+  }
+
+  if (appId === "shopify") {
+    return (
+      <img
+        src="/review_request/shopify.png"
+        alt="Yotpo"
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: "6px",
+          display: "block",
+          flexShrink: 0,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        }}
+      />
+    );
+  }
+
+  if (appId === "trustoo") {
+    return (
+      <img
+        src="/review_request/trustoo.png"
+        alt="Yotpo"
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: "6px",
+          display: "block",
+          flexShrink: 0,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 6,
+        background: "#F1F5F9",
+        border: "1px solid #E2E8F0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      ⭐
+    </div>
+  );
+}
 
 export default function ImportPage() {
   const actionData = useActionData();
@@ -296,10 +475,10 @@ export default function ImportPage() {
   const isImporting = navigation.state === "submitting";
   const isExporting = exportFetcher.state !== "idle";
 
-  // Navigation view: null (main 4 choices) | "apps" | "spreadsheet" | "platforms" | "store"
+  // Navigation view: null (main choices) | "apps" | "spreadsheet" | "store"
   const [currentView, setCurrentView] = useState(null);
 
-  // App/platform search query
+  // App search query
   const [searchAppQuery, setSearchAppQuery] = useState("");
 
   // Currently selected item for upload in subview
@@ -309,6 +488,7 @@ export default function ImportPage() {
   const [fileName, setFileName] = useState("");
   const [rowCount, setRowCount] = useState(0);
   const [showRawEditor, setShowRawEditor] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   // Auto-clear when import completes
   useEffect(() => {
@@ -317,6 +497,7 @@ export default function ImportPage() {
       setCsvContent("");
       setFileName("");
       setRowCount(0);
+      setIsAuthorized(false);
     }
   }, [actionData]);
 
@@ -349,6 +530,7 @@ export default function ImportPage() {
     setFileName("");
     setRowCount(0);
     setShowRawEditor(false);
+    setIsAuthorized(false);
   };
 
   const handleBackToMain = () => {
@@ -358,6 +540,7 @@ export default function ImportPage() {
     setCsvContent("");
     setFileName("");
     setRowCount(0);
+    setIsAuthorized(false);
   };
 
   const processFile = (file) => {
@@ -374,22 +557,16 @@ export default function ImportPage() {
     reader.readAsText(file);
   };
 
-
   const handleClearFile = () => {
     setCsvContent("");
     setFileName("");
     setRowCount(0);
+    setIsAuthorized(false);
   };
 
   const loadSampleData = (item) => {
     let sample = "";
-    if (currentView === "platforms") {
-      sample =
-        `feedback,score,author,product_handle\n` +
-        `"Fast international shipping, exactly as described! A+++",5,"David K.","the-complete-snowboard"\n` +
-        `"Very nice material, bought for my brother and he loves it",5,"Elena R.","the-complete-snowboard"`;
-      setFileName(`${item?.id || "platform"}_reviews.csv`);
-    } else if (currentView === "spreadsheet") {
+    if (currentView === "spreadsheet") {
       sample =
         `title,body,rating,reviewer_name,reviewer_email,product_handle\n` +
         `"Top tier performance","Solid construction, works great everyday.",5,"Sarah Jenkins","sarah.j@example.com","the-complete-snowboard"\n` +
@@ -429,18 +606,20 @@ export default function ImportPage() {
 
   const handleStartImport = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (!csvContent.trim()) return;
-    submit({ rawCsv: csvContent, source: selectedItem?.id || currentView }, { method: "POST" });
+    if (!csvContent.trim() || !isAuthorized) return;
+    submit(
+      {
+        rawCsv: csvContent,
+        source: selectedItem?.id || currentView,
+        authorized: "true",
+      },
+      { method: "POST" }
+    );
   };
 
   // Filtered review apps based on search
   const filteredApps = REVIEW_APPS_LIST.filter((app) =>
     app.name.toLowerCase().includes(searchAppQuery.toLowerCase())
-  );
-
-  // Filtered platforms
-  const filteredPlatforms = PLATFORMS_LIST.filter((plat) =>
-    plat.name.toLowerCase().includes(searchAppQuery.toLowerCase())
   );
 
   return (
@@ -514,6 +693,7 @@ export default function ImportPage() {
 
             <s-section>
               <s-stack gap="base">
+                <ComplianceBanner />
                 <div>
                   <s-heading size="small">Import reviews from a CSV file</s-heading>
                   <s-text tone="subdued" size="small">
@@ -600,24 +780,7 @@ export default function ImportPage() {
                               font: "inherit",
                             }}
                           >
-                            <div
-                              style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: 6,
-                                backgroundColor: app.bgColor,
-                                color: app.color,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontWeight: "800",
-                                fontSize: app.logoText.length > 4 ? "8px" : "11px",
-                                letterSpacing: "0.4px",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {app.logoText}
-                            </div>
+                            <AppBrandIcon appId={app.id} size={36} />
                             <span
                               style={{
                                 fontSize: "14px",
@@ -707,11 +870,17 @@ export default function ImportPage() {
                                 />
                               )}
 
+                              <AuthorizationCheckbox
+                                checked={isAuthorized}
+                                onChange={setIsAuthorized}
+                                label={`I confirm that I own or have permission to import these customer reviews from ${app.name} for products sold on my store, and they are not from competitors or unauthorized sources.`}
+                              />
+
                               <s-stack direction="inline" gap="small">
                                 <s-button
                                   variant="primary"
                                   loading={isImporting ? true : undefined}
-                                  disabled={!csvContent.trim() ? true : undefined}
+                                  disabled={!csvContent.trim() || !isAuthorized ? true : undefined}
                                   onClick={handleStartImport}
                                 >
                                   Start Import
@@ -765,6 +934,7 @@ export default function ImportPage() {
 
             <s-section>
               <s-stack gap="base">
+                <ComplianceBanner />
                 <div>
                   <s-heading size="small">Import reviews from a spreadsheet</s-heading>
                   <s-text tone="subdued" size="small">
@@ -812,6 +982,12 @@ export default function ImportPage() {
                   />
                 )}
 
+                <AuthorizationCheckbox
+                  checked={isAuthorized}
+                  onChange={setIsAuthorized}
+                  label="I confirm that I own or have permission to import these customer reviews for products sold on my store, and they are not from competitors or unauthorized third-party sources."
+                />
+
                 <s-stack direction="inline" justifyContent="space-between" alignItems="center">
                   <s-button variant="tertiary" onClick={() => setShowRawEditor(!showRawEditor)}>
                     {showRawEditor ? "Hide CSV text" : "View / edit CSV text"}
@@ -820,7 +996,7 @@ export default function ImportPage() {
                   <s-button
                     variant="primary"
                     loading={isImporting ? true : undefined}
-                    disabled={!csvContent.trim() ? true : undefined}
+                    disabled={!csvContent.trim() || !isAuthorized ? true : undefined}
                     onClick={handleStartImport}
                   >
                     Start Import
@@ -832,240 +1008,7 @@ export default function ImportPage() {
         )}
 
         {/* =========================================================================
-            VIEW 3: "From other platforms" (AliExpress, Amazon, Etsy, etc.)
-        ========================================================================== */}
-        {currentView === "platforms" && (
-          <s-stack gap="base">
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                type="button"
-                onClick={handleBackToMain}
-                style={{
-                  border: "1px solid #D2D5D8",
-                  borderRadius: "6px",
-                  width: "32px",
-                  height: "32px",
-                  backgroundColor: "#FFFFFF",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 1px 0 rgba(0,0,0,0.05)",
-                }}
-                title="Back to import options"
-                aria-label="Back to import options"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#202223" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <s-heading size="medium">From other platforms</s-heading>
-            </div>
-
-            <s-section>
-              <s-stack gap="base">
-                <div>
-                  <s-heading size="small">Import reviews from marketplaces &amp; platforms</s-heading>
-                  <s-text tone="subdued" size="small">
-                    Select your source platform below to import exported reviews.
-                  </s-text>
-                </div>
-
-                {/* Platforms List */}
-                <div style={{ borderTop: "1px solid #E1E3E5" }}>
-                  {filteredPlatforms.map((plat) => {
-                    const isSelected = selectedItem?.id === plat.id;
-
-                    return (
-                      <div key={plat.id} style={{ borderBottom: "1px solid #E1E3E5" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "12px 8px",
-                            backgroundColor: isSelected ? "#F4F6F8" : "transparent",
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isSelected) {
-                                setSelectedItem(null);
-                                handleClearFile();
-                              } else {
-                                setSelectedItem(plat);
-                                handleClearFile();
-                              }
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "14px",
-                              cursor: "pointer",
-                              flex: 1,
-                              border: "none",
-                              background: "transparent",
-                              padding: 0,
-                              textAlign: "left",
-                              font: "inherit",
-                            }}
-                          >
-                            {/* Platform logo rendering */}
-                            {plat.isGoogle ? (
-                              <div
-                                style={{
-                                  width: 36,
-                                  height: 36,
-                                  borderRadius: 6,
-                                  background: "#FFFFFF",
-                                  border: "1px solid #E5E7EB",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <svg width="18" height="18" viewBox="0 0 24 24">
-                                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                                </svg>
-                              </div>
-                            ) : plat.isMeta ? (
-                              <div
-                                style={{
-                                  width: 36,
-                                  height: 36,
-                                  borderRadius: 6,
-                                  background: "#FFFFFF",
-                                  border: "1px solid #E5E7EB",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#0081FB">
-                                  <path d="M16.9 7C14.7 7 12.8 8.4 12 10.3 11.2 8.4 9.3 7 7.1 7 4.3 7 2 9.2 2 12s2.3 5 5.1 5c2.2 0 4.1-1.4 4.9-3.3.8 1.9 2.7 3.3 4.9 3.3 2.8 0 5.1-2.2 5.1-5s-2.3-5-5.1-5zm-9.8 8c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm9.8 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z" />
-                                </svg>
-                              </div>
-                            ) : plat.isAmazon ? (
-                              <div
-                                style={{
-                                  width: 36,
-                                  height: 36,
-                                  borderRadius: 6,
-                                  background: "#FFFFFF",
-                                  border: "1px solid #E5E7EB",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <span style={{ fontSize: "16px", fontWeight: "900", color: "#111", lineHeight: 1 }}>a</span>
-                                <div style={{ width: 14, height: 2, background: "#FF9900", borderRadius: 1, marginTop: 1 }}></div>
-                              </div>
-                            ) : (
-                              <div
-                                style={{
-                                  width: 36,
-                                  height: 36,
-                                  borderRadius: 6,
-                                  background: plat.bgColor,
-                                  color: plat.color,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontWeight: "bold",
-                                  fontSize: "11px",
-                                }}
-                              >
-                                {plat.logoText}
-                              </div>
-                            )}
-
-                            <span style={{ fontSize: "14px", fontWeight: "500", color: "#005BD3" }}>
-                              {plat.name}
-                            </span>
-                          </button>
-
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedItem(plat);
-                                handleClearFile();
-                              }}
-                              style={{
-                                border: "none",
-                                background: "none",
-                                color: "#005BD3",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                cursor: "pointer",
-                                padding: "6px 12px",
-                              }}
-                            >
-                              Import
-                            </button>
-                          </div>
-                        </div>
-
-                        {isSelected && (
-                          <div
-                            style={{
-                              padding: "16px",
-                              backgroundColor: "#F9FAFB",
-                              borderTop: "1px solid #E1E3E5",
-                            }}
-                          >
-                            <s-stack gap="base">
-                              <s-text tone="subdued" size="small">
-                                Drop your <strong>{plat.name}</strong> review export CSV file below.
-                              </s-text>
-
-                              <CsvDropArea
-                                fileName={fileName}
-                                rowCount={rowCount}
-                                onFileSelected={processFile}
-                                onClearFile={handleClearFile}
-                                hint={`or click to upload CSV from ${plat.name}`}
-                              />
-
-                              <s-stack direction="inline" justifyContent="space-between" alignItems="center">
-                                <s-button variant="tertiary" onClick={() => loadSampleData(plat)}>
-                                  Load sample {plat.name} CSV
-                                </s-button>
-                              </s-stack>
-
-                              <s-stack direction="inline" gap="small">
-                                <s-button
-                                  variant="primary"
-                                  loading={isImporting ? true : undefined}
-                                  disabled={!csvContent.trim() ? true : undefined}
-                                  onClick={handleStartImport}
-                                >
-                                  Start Import
-                                </s-button>
-                                <s-button variant="secondary" onClick={() => { setSelectedItem(null); handleClearFile(); }}>
-                                  Cancel
-                                </s-button>
-                              </s-stack>
-                            </s-stack>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </s-stack>
-            </s-section>
-          </s-stack>
-        )}
-
-        {/* =========================================================================
-            VIEW 4: "From another store you own that uses Judge.me"
+            VIEW 3: "From another store you own"
         ========================================================================== */}
         {currentView === "store" && (
           <s-stack gap="base">
@@ -1092,15 +1035,16 @@ export default function ImportPage() {
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
               </button>
-              <s-heading size="medium">From another store you own that uses Judge.me</s-heading>
+              <s-heading size="medium">From another store you own</s-heading>
             </div>
 
             <s-section>
               <s-stack gap="base">
+                <ComplianceBanner />
                 <div>
-                  <s-heading size="small">Transfer reviews from another Shopify store</s-heading>
+                  <s-heading size="small">Transfer reviews from another Shopify store you own</s-heading>
                   <s-text tone="subdued" size="small">
-                    Export a CSV backup from your other store using Judge.me or Reviora, and upload it below to sync reviews.
+                    Export a CSV backup from your other store and upload it below to transfer reviews you own between stores.
                   </s-text>
                 </div>
 
@@ -1116,14 +1060,25 @@ export default function ImportPage() {
                   <s-button variant="tertiary" onClick={() => loadSampleData({ id: "store" })}>
                     Load sample store backup
                   </s-button>
+                </s-stack>
 
+                <AuthorizationCheckbox
+                  checked={isAuthorized}
+                  onChange={setIsAuthorized}
+                  label="I confirm that I own or operate the source store and am authorized to use and transfer these reviews."
+                />
+
+                <s-stack direction="inline" gap="small">
                   <s-button
                     variant="primary"
                     loading={isImporting ? true : undefined}
-                    disabled={!csvContent.trim() ? true : undefined}
+                    disabled={!csvContent.trim() || !isAuthorized ? true : undefined}
                     onClick={handleStartImport}
                   >
                     Start Import
+                  </s-button>
+                  <s-button variant="secondary" onClick={() => { setSelectedItem(null); handleClearFile(); }}>
+                    Cancel
                   </s-button>
                 </s-stack>
               </s-stack>
@@ -1132,12 +1087,13 @@ export default function ImportPage() {
         )}
 
         {/* =========================================================================
-            MAIN VIEW: The 4 distinct category blocks
+            MAIN VIEW: The 3 authorized category blocks
         ========================================================================== */}
         {currentView === null && (
           <s-stack gap="base">
             <s-section>
               <s-stack gap="base">
+                <ComplianceBanner />
                 <s-heading size="small">Import reviews</s-heading>
 
                 <s-stack gap="small">
@@ -1157,97 +1113,17 @@ export default function ImportPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       {/* Logos row */}
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#000000",
-                            color: "#FFFFFF",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: "800",
-                            fontSize: 9,
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          LOOX
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#0D57F8",
-                            color: "#FFFFFF",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: "800",
-                            fontSize: 9,
-                          }}
-                        >
-                          yotpo.
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#192248",
-                            color: "#60A5FA",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: "900",
-                            fontSize: 14,
-                          }}
-                        >
-                          A
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#1C2024",
-                            color: "#FFFFFF",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                            <path d="M19.5 5.5L16.5 2.5H7.5L4.5 5.5V21.5H19.5V5.5Z" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M16 10C16 12.21 14.21 14 12 14C9.79 14 8 12.21 8 10" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#CBD5E1",
-                            color: "#334155",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 16,
-                          }}
-                        >
-                          🐳
-                        </div>
+                        <AppBrandIcon appId="judge_me" size={34} />
+                        <AppBrandIcon appId="loox" size={34} />
+                        <AppBrandIcon appId="yotpo" size={34} />
+                        <AppBrandIcon appId="okendo" size={34} />
+                        <AppBrandIcon appId="klaviyo" size={34} />
                       </div>
 
                       <div>
                         <s-heading size="small">From review apps</s-heading>
                         <s-text tone="subdued" size="small">
-                          Bring your reviews from Loox, Yotpo, Air Reviews, Shopify, Klaviyo, Arereviews and others.
+                          Migrate your reviews from Judge.me, Loox, Yotpo, Okendo, Klaviyo, Air Reviews, and others.
                         </s-text>
                       </div>
                     </div>
@@ -1273,19 +1149,24 @@ export default function ImportPage() {
                     }}
                   >
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
-                        <rect width="36" height="36" rx="6" fill="#0F9D58" />
-                        <path d="M11 9H19L25 15V27H11V9Z" fill="#E8F5E9" />
-                        <path d="M19 9V15H25L19 9Z" fill="#A5D6A7" />
-                        <rect x="13" y="17" width="10" height="2" fill="#0F9D58" />
-                        <rect x="13" y="20" width="10" height="2" fill="#0F9D58" />
-                        <rect x="13" y="23" width="6" height="2" fill="#0F9D58" />
-                      </svg>
+                      <img
+                        src="/review_request/spreedsheet.png"
+                        alt="Yotpo"
+                        style={{
+                          width: 34,
+                          height: 34,
+                          objectFit: "contain",
+                          borderRadius: "6px",
+                          display: "block",
+                          flexShrink: 0,
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                        }}
+                      />
 
                       <div>
                         <s-heading size="small">From a spreadsheet</s-heading>
                         <s-text tone="subdued" size="small">
-                          Import your own reviews from a spreadsheet format.
+                          Import your own verified reviews from a CSV spreadsheet format.
                         </s-text>
                       </div>
                     </div>
@@ -1297,7 +1178,7 @@ export default function ImportPage() {
                     </div>
                   </div>
 
-                  {/* Option 3: From other platforms */}
+                  {/* Option 3: From another store you own */}
                   <div
                     style={{
                       border: "1px solid #D2D5D8",
@@ -1311,148 +1192,24 @@ export default function ImportPage() {
                     }}
                   >
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#FF3838",
-                            color: "#FFFFFF",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: "bold",
-                            fontSize: 9,
-                          }}
-                        >
-                          Ali
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#FFFFFF",
-                            border: "1px solid #E5E7EB",
-                            color: "#F1641E",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: "bold",
-                            fontSize: 10,
-                            fontFamily: "serif",
-                          }}
-                        >
-                          Etsy
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#FFFFFF",
-                            border: "1px solid #E5E7EB",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <span style={{ fontSize: "15px", fontWeight: "900", color: "#111", lineHeight: 1 }}>a</span>
-                          <div style={{ width: 13, height: 2, background: "#FF9900", borderRadius: 1, marginTop: 1 }}></div>
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#FFFFFF",
-                            border: "1px solid #E5E7EB",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <svg width="17" height="17" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                          </svg>
-                        </div>
-
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            background: "#FFFFFF",
-                            border: "1px solid #E5E7EB",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <svg width="19" height="19" viewBox="0 0 24 24" fill="#0081FB">
-                            <path d="M16.9 7C14.7 7 12.8 8.4 12 10.3 11.2 8.4 9.3 7 7.1 7 4.3 7 2 9.2 2 12s2.3 5 5.1 5c2.2 0 4.1-1.4 4.9-3.3.8 1.9 2.7 3.3 4.9 3.3 2.8 0 5.1-2.2 5.1-5s-2.3-5-5.1-5zm-9.8 8c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm9.8 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z" />
-                          </svg>
-                        </div>
-                      </div>
-
-                      <div>
-                        <s-heading size="small">From other platforms</s-heading>
-                        <s-text tone="subdued" size="small">
-                          Import reviews from other e-commerce platforms or sync reviews from your other Shopify stores.
-                        </s-text>
-                      </div>
-                    </div>
-
-                    <div style={{ flexShrink: 0 }}>
-                      <s-button onClick={() => handleNavigateTo("platforms")}>
-                        Import from platforms
-                      </s-button>
-                    </div>
-                  </div>
-
-                  {/* Option 4: From another store you own */}
-                  <div
-                    style={{
-                      border: "1px solid #D2D5D8",
-                      borderRadius: "8px",
-                      padding: "18px 24px",
-                      backgroundColor: "#FFFFFF",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "24px",
-                    }}
-                  >
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <div
+                      <img
+                        src="/review_request/shopify.png"
+                        alt="Yotpo"
                         style={{
                           width: 34,
                           height: 34,
-                          borderRadius: 6,
-                          background: "#FFFFFF",
-                          border: "1px solid #E5E7EB",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
+                          objectFit: "contain",
+                          borderRadius: "6px",
+                          display: "block",
+                          flexShrink: 0,
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                         }}
-                      >
-                        <svg width="22" height="22" viewBox="0 0 36 36" fill="none">
-                          <path d="M22.5 13.5C22.4 13.5 22.3 13.5 22.2 13.5L20.8 10.2C20.5 9.5 19.8 9 19.1 9H16.9C16.2 9 15.5 9.5 15.2 10.2L13.8 13.5C13.7 13.5 13.6 13.5 13.5 13.5C12.7 13.5 12 14.2 12 15L13.2 25.5C13.3 26.3 14 27 14.8 27H21.2C22 27 22.7 26.3 22.8 25.5L24 15C24 14.2 23.3 13.5 22.5 13.5ZM16.5 10.8C16.6 10.5 16.8 10.4 17 10.4H19C19.2 10.4 19.4 10.5 19.5 10.8L20.6 13.5H15.4L16.5 10.8Z" fill="#95BF47" />
-                        </svg>
-                      </div>
+                      />
 
                       <div>
-                        <s-heading size="small">From another store you own that uses Judge.me</s-heading>
+                        <s-heading size="small">From another store you own</s-heading>
                         <s-text tone="subdued" size="small">
-                          Transfer your Judge.me reviews or sync between stores.
+                          Transfer customer reviews from another store that you own and operate.
                         </s-text>
                       </div>
                     </div>

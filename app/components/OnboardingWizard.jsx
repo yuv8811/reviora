@@ -600,10 +600,10 @@ export function OnboardingWizard({
                 </div>
                 <div>
                   <div style={{ fontSize: "14px", fontWeight: "600", color: "#202223", marginBottom: "2px" }}>
-                    1-Click Import from CSV &amp; Competitors
+                    Import Your Existing Reviews
                   </div>
                   <div style={{ fontSize: "13px", color: "#6D7175", lineHeight: 1.4 }}>
-                    Effortlessly transfer your existing review history from Judge.me, Loox, Yotpo, AliExpress, or CSV files.
+                    Effortlessly transfer your existing store reviews from Judge.me, Loox, Yotpo, or standard CSV files.
                   </div>
                 </div>
               </div>

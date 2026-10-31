@@ -82,6 +82,7 @@ const StoreReviewsSchema = new mongoose.Schema(
     widgetSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
     onboardingStep: { type: Number, default: 1 },
     onboardingCompleted: { type: Boolean, default: false },
+    slackInstallNotifiedAt: { type: Date, default: null },
   },
   {
     timestamps: true,

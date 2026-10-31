@@ -5,6 +5,7 @@ import { authenticate } from "../shopify.server";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
 import { connectDB } from "../db.server.js";
 import { getShopSettings } from "../models/review.server.js";
+import { notifyAppInstall } from "../services/slack.server.js";
 import process from "process";
 
 export const loader = async ({ request }) => {
@@ -25,7 +26,12 @@ export const loader = async ({ request }) => {
     return null;
   }
 
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
+
+  // Send Slack install alert if not already sent for this store
+  notifyAppInstall({ shop: session.shop, admin }).catch((err) =>
+    console.error("[Slack] Error checking install alert in app.jsx:", err)
+  );
 
   await connectDB();
   const shopSettings = await getShopSettings(session.shop);

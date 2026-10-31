@@ -9,6 +9,7 @@ import {
   BillingInterval,
 } from "@shopify/shopify-app-react-router/server";
 import { MongoDBSessionStorage } from "@shopify/shopify-app-session-storage-mongodb";
+import { notifyAppInstall } from "./services/slack.server.js";
 const MONGODB_URI =
   process.env.MONGODB_URI;
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || "Reviora";
@@ -31,6 +32,18 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
+  },
+  hooks: {
+    afterAuth: async ({ session, admin }) => {
+      try {
+        shopify.registerWebhooks({ session });
+      } catch (err) {
+        console.warn("[Webhooks] Error registering webhooks in afterAuth:", err);
+      }
+      notifyAppInstall({ shop: session.shop, admin, force: true }).catch((err) =>
+        console.error("[Slack] Error in afterAuth install notification:", err)
+      );
+    },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
