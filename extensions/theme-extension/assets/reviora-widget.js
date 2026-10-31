@@ -1,33 +1,4 @@
 (() => {
-  // If the app embed block is disabled in the theme, do not initialize or display widgets
-  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
-    const hideAll = () => {
-      document.querySelectorAll(
-        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
-      ).forEach((el) => el.style.setProperty("display", "none", "important"));
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", hideAll);
-    } else {
-      hideAll();
-    }
-    return;
-  }
-
-  // If the app embed block is disabled in the theme, do not initialize or display widgets
-  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
-    const hideAll = () => {
-      document.querySelectorAll(
-        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
-      ).forEach((el) => el.style.setProperty("display", "none", "important"));
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", hideAll);
-    } else {
-      hideAll();
-    }
-    return;
-  }
   // Global Lightbox Utility
   class RevioraLightbox {
     constructor() {
@@ -829,20 +800,6 @@
         searchInput.oninput = (e) => {
           clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
-  // If the app embed block is disabled in the theme, do not initialize or display widgets
-  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
-    const hideAll = () => {
-      document.querySelectorAll(
-        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
-      ).forEach((el) => el.style.setProperty("display", "none", "important"));
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", hideAll);
-    } else {
-      hideAll();
-    }
-    return;
-  }
             this.searchKeyword = e.target.value;
             this.applyFiltersAndSort();
             this.render();
@@ -1106,20 +1063,6 @@
               setStep(3);
               this.fetchReviews();
               setTimeout(() => {
-  // If the app embed block is disabled in the theme, do not initialize or display widgets
-  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
-    const hideAll = () => {
-      document.querySelectorAll(
-        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
-      ).forEach((el) => el.style.setProperty("display", "none", "important"));
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", hideAll);
-    } else {
-      hideAll();
-    }
-    return;
-  }
                 closeForm();
                 form.reset();
                 this.uploadedMedia = [];
@@ -1229,8 +1172,6 @@
     }
 
     render() {
-      const isThemeEditor = Boolean(window.Shopify && window.Shopify.designMode);
-
       let targetList = [];
 
       if (this.type === "videos") {
@@ -1241,35 +1182,33 @@
         targetList = this.reviews || [];
       }
 
-      // If no customer reviews exist yet:
-      if (!targetList || targetList.length === 0) {
-        if (isThemeEditor) {
-          this.style.display = "block";
-          this.innerHTML = `
-            <div class="reviora-carousel-block reviora-editor-empty-state" style="text-align:center;padding:36px 20px;border:1px dashed #cbd5e1;border-radius:12px;background:#f8fafc;color:#64748b;margin:24px auto;max-width:800px;">
-              <div style="font-size:24px;margin-bottom:8px;">★</div>
-              <div style="font-weight:700;font-size:15px;color:#0f172a;margin-bottom:4px;">${escapeHtml(this.heading)}</div>
-              <div style="font-size:13px;color:#64748b;">No ${this.type === "videos" ? "video " : ""}reviews collected yet. Once verified customer reviews are published, this carousel will display them automatically.</div>
-            </div>
-          `;
-          return;
-        } else {
-          // On live storefront with 0 reviews: hide clean
-          this.innerHTML = "";
-          this.style.display = "none";
-          const parentBlock = this.closest(".reviora-app-block");
-          if (parentBlock) {
-            parentBlock.style.display = "none";
-          }
-          return;
-        }
-      }
-
-      // Ensure block is visible when real reviews exist
+      // Ensure block is visible
       this.style.display = "block";
       const parentBlock = this.closest(".reviora-app-block");
       if (parentBlock) {
         parentBlock.style.display = "";
+      }
+
+      // If no customer reviews exist yet for this carousel type:
+      if (!targetList || targetList.length === 0) {
+        const emptyIcon = this.type === "videos" ? "🎬" : "★";
+        const emptyMsg = this.type === "videos"
+          ? "No video reviews yet. Video reviews from verified buyers will appear here automatically."
+          : "No reviews collected yet. Verified customer reviews will appear in this carousel once submitted.";
+
+        this.innerHTML = `
+          <div class="reviora-carousel-block">
+            <div class="reviora-carousel-header">
+              <h2 class="reviora-carousel-title">${escapeHtml(this.heading)}</h2>
+              ${this.subheading ? `<p class="reviora-carousel-sub">${escapeHtml(this.subheading)}</p>` : ""}
+            </div>
+            <div class="reviora-carousel-empty-state" style="text-align:center;padding:36px 24px;border:1px dashed #cbd5e1;border-radius:12px;background:#f8fafc;color:#64748b;margin:16px auto;max-width:580px;">
+              <div style="font-size:32px;margin-bottom:8px;">${emptyIcon}</div>
+              <div style="font-size:14px;color:#64748b;line-height:1.5;">${emptyMsg}</div>
+            </div>
+          </div>
+        `;
+        return;
       }
 
       let slidesHtml = "";
@@ -1390,7 +1329,6 @@
       // Autoplay if configured and there are enough slides to scroll
       if (this.autoplay && targetList.length > 3) {
         const stepAutoplay = () => {
-          if (!window.__REVIORA_APP_EMBED_ENABLED__) return;
           if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
             track.scrollTo({ left: 0, behavior: "smooth" });
           } else {
@@ -1686,21 +1624,25 @@
         window.RevioraApiUrl ||
         "https://reviora-ef66.onrender.com";
 
-      const isThemeEditor = Boolean(window.Shopify && window.Shopify.designMode);
-      if (isThemeEditor) {
-        this.renderEditorEmpty();
-      }
-
+      this.renderEmpty();
       this.fetchMedia();
     }
 
-    renderEditorEmpty() {
+    renderEmpty() {
       this.style.display = "block";
+      const parentBlock = this.closest(".reviora-ugc-grid-block");
+      if (parentBlock) parentBlock.style.display = "";
+
       this.innerHTML = `
-        <div class="reviora-carousel-block reviora-editor-empty-state" style="text-align:center;padding:36px 20px;border:1px dashed #cbd5e1;border-radius:12px;background:#f8fafc;color:#64748b;margin:24px auto;max-width:800px;">
-          <div style="font-size:24px;margin-bottom:8px;">📷</div>
-          <div style="font-weight:700;font-size:15px;color:#0f172a;margin-bottom:4px;">${escapeHtml(this.heading)}</div>
-          <div style="font-size:13px;color:#64748b;">No customer photos or videos uploaded yet. Once verified customers submit media with their reviews, this photo wall will display them automatically.</div>
+        <div class="reviora-carousel-block">
+          <div class="reviora-carousel-header">
+            <h2 class="reviora-carousel-title">${escapeHtml(this.heading)}</h2>
+            ${this.subheading ? `<p class="reviora-carousel-sub">${escapeHtml(this.subheading)}</p>` : ""}
+          </div>
+          <div class="reviora-ugc-empty-state" style="text-align:center;padding:36px 24px;border:1px dashed #cbd5e1;border-radius:12px;background:#f8fafc;color:#64748b;margin:16px auto;max-width:580px;">
+            <div style="font-size:32px;margin-bottom:8px;">📷</div>
+            <div style="font-size:14px;color:#64748b;line-height:1.5;">No customer photos or videos uploaded yet. Once verified customers submit media with their reviews, this photo wall will display them automatically.</div>
+          </div>
         </div>
       `;
     }
@@ -1713,8 +1655,6 @@
         `/apps/reviora/api/reviews?shop=${shopParam}&limit=50`,
         `/api/reviews?shop=${shopParam}&limit=50`,
       ];
-
-      const isThemeEditor = Boolean(window.Shopify && window.Shopify.designMode);
 
       for (const endpoint of urls) {
         try {
@@ -1736,21 +1676,14 @@
         }
       }
 
-      // No media reviews found
-      if (isThemeEditor) {
-        this.renderEditorEmpty();
-      } else {
-        this.innerHTML = "";
-        this.style.display = "none";
-        const parentBlock = this.closest(".reviora-ugc-grid-block");
-        if (parentBlock) {
-          parentBlock.style.display = "none";
-        }
-      }
+      this.renderEmpty();
     }
 
     renderGrid(reviews) {
-      if (!reviews || reviews.length === 0) return;
+      if (!reviews || reviews.length === 0) {
+        this.renderEmpty();
+        return;
+      }
 
       const mediaItems = [];
       reviews.forEach((r) => {
@@ -1766,15 +1699,7 @@
       });
 
       if (mediaItems.length === 0) {
-        const isThemeEditor = Boolean(window.Shopify && window.Shopify.designMode);
-        if (isThemeEditor) {
-          this.renderEditorEmpty();
-        } else {
-          this.innerHTML = "";
-          this.style.display = "none";
-          const parentBlock = this.closest(".reviora-ugc-grid-block");
-          if (parentBlock) parentBlock.style.display = "none";
-        }
+        this.renderEmpty();
         return;
       }
 
@@ -2203,20 +2128,6 @@
           }
 
           setTimeout(() => {
-  // If the app embed block is disabled in the theme, do not initialize or display widgets
-  if (!window.__REVIORA_APP_EMBED_ENABLED__) {
-    const hideAll = () => {
-      document.querySelectorAll(
-        ".reviora-app-block, .reviora-star-badge-block, reviora-reviews-widget, reviora-reviews-carousel, reviora-floating-tab, reviora-review-popups, reviora-ugc-media-grid, reviora-all-reviews-page, reviora-qa-widget"
-      ).forEach((el) => el.style.setProperty("display", "none", "important"));
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", hideAll);
-    } else {
-      hideAll();
-    }
-    return;
-  }
             if (formBox) formBox.style.display = "none";
             if (form) {
               form.reset();
