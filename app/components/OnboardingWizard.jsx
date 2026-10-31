@@ -97,6 +97,9 @@ export function OnboardingWizard({
   const stepFetcher = useFetcher();
 
   const changeStep = (nextStep) => {
+    if (nextStep === 5 && !themeVerified) {
+      return;
+    }
     setCurrentStep(nextStep);
     if (typeof window !== "undefined") {
       try {
@@ -459,20 +462,24 @@ export function OnboardingWizard({
               const isCompleted = stepNum < currentStep;
               const isCurrent = stepNum === currentStep;
 
+              const isStepDisabled = stepNum === 5 && !themeVerified;
+
               return (
                 <button
                   key={label}
                   type="button"
-                  onClick={() => changeStep(stepNum)}
+                  disabled={isStepDisabled}
+                  onClick={() => !isStepDisabled && changeStep(stepNum)}
                   style={{
                     background: "none",
                     border: "none",
                     padding: 0,
-                    cursor: "pointer",
+                    cursor: isStepDisabled ? "not-allowed" : "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     outline: "none",
+                    opacity: isStepDisabled ? 0.6 : 1,
                   }}
                 >
                   {/* Node Circle */}
@@ -1469,20 +1476,23 @@ export function OnboardingWizard({
               </button>
               <button
                 type="button"
-                onClick={() => changeStep(5)}
+                disabled={!themeVerified}
+                onClick={themeVerified ? () => changeStep(5) : undefined}
+                title={!themeVerified ? "Enable and verify Reviora in your theme to proceed" : undefined}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "6px",
                   padding: "9px 18px",
-                  backgroundColor: "#008060",
-                  color: "#FFFFFF",
+                  backgroundColor: themeVerified ? "#008060" : "#E4E5E7",
+                  color: themeVerified ? "#FFFFFF" : "#8C9196",
                   border: "none",
                   borderRadius: "6px",
                   fontSize: "13px",
                   fontWeight: "600",
-                  cursor: "pointer",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+                  cursor: themeVerified ? "pointer" : "not-allowed",
+                  boxShadow: themeVerified ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  transition: "all 0.15s ease",
                 }}
               >
                 Next: Complete Setup <ArrowRight size={14} />
