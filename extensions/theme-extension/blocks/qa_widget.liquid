@@ -1,7 +1,7 @@
 {{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
 
-<div class="page-width reviora-qa-section-wrapper" style="width: 100%; max-width: 1120px; margin: {{ block.settings.margin_top | default: 32 }}px auto {{ block.settings.margin_bottom | default: 32 }}px auto; padding: 0 16px; box-sizing: border-box;">
+<div class="page-width reviora-qa-section-wrapper" style="width: 100%; max-width: 1200px; margin: {{ block.settings.margin_top | default: 32 }}px auto {{ block.settings.margin_bottom | default: 32 }}px auto; padding: 0 16px; box-sizing: border-box;">
   {% assign current_product_id = product.handle | default: product.id %}
   {% if current_product_id == blank and template.name != 'product' %}
     {% assign current_product_id = 'demo-snowboard' %}

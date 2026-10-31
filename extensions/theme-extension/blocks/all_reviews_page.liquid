@@ -1,7 +1,7 @@
 {{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
 
-<div class="reviora-all-reviews-block" style="margin: {{ block.settings.margin_top | default: 32 }}px 0 {{ block.settings.margin_bottom | default: 32 }}px 0;">
+<div class="page-width reviora-all-reviews-block" style="width: 100%; max-width: 1200px; margin: {{ block.settings.margin_top | default: 32 }}px auto {{ block.settings.margin_bottom | default: 32 }}px auto; padding: 0 16px; box-sizing: border-box;">
   <reviora-all-reviews-page
     data-shop="{{ shop.myshopify_domain | default: shop.domain }}"
     data-heading="{{ block.settings.heading | default: 'All Store Reviews' }}"

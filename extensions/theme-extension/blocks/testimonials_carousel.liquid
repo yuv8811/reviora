@@ -1,7 +1,7 @@
 {{ 'reviora-widget.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'reviora-widget.js' | asset_url }}" defer="defer"></script>
 
-<div class="reviora-app-block" style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0;">
+<div class="page-width reviora-app-block" style="width: 100%; max-width: 1200px; margin: {{ block.settings.margin_top | default: 40 }}px auto {{ block.settings.margin_bottom | default: 40 }}px auto; padding: 0 16px; box-sizing: border-box;">
   {% assign target_product_id = "all" %}
   {% if block.settings.product != blank and block.settings.product.handle != blank %}
     {% assign target_product_id = block.settings.product.handle %}
