@@ -118,7 +118,6 @@ export async function checkProPlanActive({ admin, billing, shop }) {
  */
 export async function createProSubscription({
   admin,
-  billing,
   session,
   returnPath = "/app/billing",
   isTestParam = false,

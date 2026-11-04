@@ -99,7 +99,7 @@ export default function RequestsPage() {
 //       };
 //     });
 //   } catch (err) {
-//     console.error("âš ï¸ Failed to fetch Shopify orders:", err);
+//     console.error("[Orders] Failed to fetch Shopify orders:", err);
 //   }
 // 
 //   const rawRequests = await ReviewRequest.find({ shop: session.shop })

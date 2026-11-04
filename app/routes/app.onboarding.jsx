@@ -302,7 +302,7 @@ export const loader = async ({ request }) => {
     themes,
     initialStep,
     hasActivePayment,
-    currentPlan: hasActivePayment ? "PRO" : (shopSettings?.plan || "FREE"),
+    currentPlan: hasActivePayment ? "PRO" : "FREE",
     isTest,
     initialThemeVerified: Boolean(themeVerification.verified),
     initialThemeName: themeVerification.themeName || themes[0]?.name || "Live Theme",

@@ -25,7 +25,14 @@ export const action = async ({ request }) => {
     await connectDB();
     await StoreReviews.updateOne(
       { shop },
-      { $set: { slackInstallNotifiedAt: null } }
+      {
+        $set: {
+          slackInstallNotifiedAt: null,
+          plan: "FREE",
+          onboardingCompleted: false,
+          onboardingStep: 1,
+        },
+      }
     );
     notifyAppUninstall({ shop }).catch((e) =>
       console.error("[Slack] Error sending uninstall alert:", e)

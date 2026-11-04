@@ -102,12 +102,12 @@ export const loader = async ({ request }) => {
     forceOnboarding,
     initialStep,
     hasActivePayment,
-    currentPlan: hasActivePayment ? "PRO" : (shopSettings?.plan || "FREE"),
+    currentPlan: hasActivePayment ? "PRO" : "FREE",
   };
 };
 
 export const action = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, billing } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = formData.get("actionType");
 

@@ -27,7 +27,6 @@ export function OnboardingWizard({
   onComplete,
   initialStep = 1,
   hasActivePayment = false,
-  currentPlan = "FREE",
   isTest = false,
   initialThemeVerified = false,
   initialThemeName = "",
@@ -73,7 +72,6 @@ export function OnboardingWizard({
   });
 
   const [activePayment, setActivePayment] = useState(Boolean(hasActivePayment));
-  const [activePlan, setActivePlan] = useState(hasActivePayment ? "PRO" : "FREE");
 
   const [subscribeError, setSubscribeError] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
@@ -118,35 +116,22 @@ export function OnboardingWizard({
     );
   };
 
-  const handleSelectPlan = (plan) => {
-    setSelectedPlan(plan);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(`reviora_selected_plan_${shop}`, plan);
-      } catch (e) {
-        // 
-      }
-    }
-    stepFetcher.submit(
-      {
-        actionType: "saveOnboardingStep",
-        step: String(currentStep),
-        plan,
-        primaryColor: selectedColor,
-        isTest: isTest ? "true" : "false",
-      },
-      { method: "POST" }
-    );
-  };
-
-
   useEffect(() => {
     if (hasActivePayment) {
       setActivePayment(true);
-      setActivePlan("PRO");
       setSelectedPlan("PRO");
       if (currentStep < 4) {
         changeStep(4);
+      }
+    } else {
+      setActivePayment(false);
+      setSelectedPlan("FREE");
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem(`reviora_selected_plan_${shop}`);
+        } catch (e) {
+          // ignore
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,7 +150,6 @@ export function OnboardingWizard({
     if (billingFetcher.data) {
       if (billingFetcher.data.plan) {
         setSelectedPlan(billingFetcher.data.plan);
-        setActivePlan(billingFetcher.data.plan);
         setActivePayment(Boolean(billingFetcher.data.hasActivePayment));
       }
     }
@@ -263,7 +247,7 @@ export function OnboardingWizard({
       window.removeEventListener("focus", handleRecheck);
       document.removeEventListener("visibilitychange", handleRecheck);
     };
-  }, [currentStep, selectedThemeId, themeFetcher.state, themeFetcher.data]);
+  }, [currentStep, selectedThemeId, themeFetcher]);
 
 
 
@@ -306,7 +290,6 @@ export function OnboardingWizard({
   const handleDowngradeToFree = () => {
     setSubscribeError("");
     setSelectedPlan("FREE");
-    setActivePlan("FREE");
     setActivePayment(false);
     if (typeof window !== "undefined") {
       try {

@@ -18,8 +18,11 @@ export const loader = async ({ request }) => {
 
   const result = await checkProPlanActive({ admin, billing, shop });
   const url = new URL(request.url);
+  const hasChargeId = Boolean(url.searchParams.get("charge_id"));
   const upgraded =
-    url.searchParams.get("upgraded") === "true" || Boolean(url.searchParams.get("charge_id"));
+    result.hasActivePayment &&
+    (url.searchParams.get("upgraded") === "true" || hasChargeId);
+  const declined = !result.hasActivePayment && hasChargeId;
   const downgraded = url.searchParams.get("downgraded") === "true";
 
   return {
@@ -28,6 +31,7 @@ export const loader = async ({ request }) => {
     current: result.activeSubscriptionName,
     currentPlan: result.currentPlan,
     upgraded,
+    declined,
     downgraded,
   };
 };
@@ -65,7 +69,7 @@ export const action = async ({ request }) => {
 };
 
 export default function BillingPage() {
-  const { currentPlan, hasActivePayment, upgraded, downgraded } = useLoaderData();
+  const { hasActivePayment, upgraded, declined, downgraded } = useLoaderData();
   const actionData = useActionData();
   const navigation = useNavigation();
   const submit = useSubmit();
@@ -146,6 +150,14 @@ export default function BillingPage() {
           <s-banner tone="success" heading="Subscription Active">
             <s-paragraph>
               You are now successfully subscribed to the Reviora Pro plan ($4.99/mo). All premium features are unlocked!
+            </s-paragraph>
+          </s-banner>
+        )}
+
+        {declined && (
+          <s-banner tone="warning" heading="Subscription Not Approved">
+            <s-paragraph>
+              The subscription charge was not approved. Your account is on the Free plan, and no charges were made. You can upgrade anytime below.
             </s-paragraph>
           </s-banner>
         )}
