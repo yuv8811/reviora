@@ -95,7 +95,7 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { session, billing } = await authenticate.admin(request);
+  const { admin, session, billing } = await authenticate.admin(request);
   const formData = await request.formData();
   const widgetId = formData.get("widgetId");
 
@@ -106,21 +106,8 @@ export const action = async ({ request }) => {
   // Plan verification for PRO widgets
   const widgetDef = widgetsConfig.find((w) => w.id === widgetId);
   if (widgetDef?.isPremium) {
-    let isPro = false;
-    try {
-      // eslint-disable-next-line no-undef
-      const isTest = process.env.NODE_ENV !== "production";
-      const billingCheck = await billing.check({
-        plans: ["Pro"],
-        isTest,
-      });
-      isPro = billingCheck.hasActivePayment;
-    } catch {
-      const settings = await getShopSettings(session.shop);
-      isPro = settings?.plan === "PRO";
-    }
-
-    if (!isPro) {
+    const billingResult = await checkProPlanActive({ admin, billing, shop: session.shop });
+    if (!billingResult.hasActivePayment) {
       return {
         error: "This widget requires an active Reviora Pro plan ($4.99/mo). Please upgrade to save custom settings.",
       };

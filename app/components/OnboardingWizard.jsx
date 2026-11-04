@@ -68,20 +68,12 @@ export function OnboardingWizard({
   });
 
   const [selectedPlan, setSelectedPlan] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(`reviora_selected_plan_${shop}`);
-        if (saved === "PRO" || saved === "FREE") return saved;
-      } catch (e) {
-        // ignore
-      }
-    }
-    if (hasActivePayment || currentPlan === "PRO") return "PRO";
+    if (hasActivePayment) return "PRO";
     return "FREE";
   });
 
   const [activePayment, setActivePayment] = useState(Boolean(hasActivePayment));
-  const [activePlan, setActivePlan] = useState(currentPlan || (hasActivePayment ? "PRO" : "FREE"));
+  const [activePlan, setActivePlan] = useState(hasActivePayment ? "PRO" : "FREE");
 
   const [subscribeError, setSubscribeError] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
@@ -149,12 +141,16 @@ export function OnboardingWizard({
 
 
   useEffect(() => {
-    if (!isTest && hasActivePayment && currentStep < 4) {
-      changeStep(4);
+    if (hasActivePayment) {
+      setActivePayment(true);
+      setActivePlan("PRO");
       setSelectedPlan("PRO");
+      if (currentStep < 4) {
+        changeStep(4);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasActivePayment, isTest]);
+  }, [hasActivePayment]);
 
   const isSubscribingPro =
     (billingFetcher.state === "submitting" && billingFetcher.formData?.get("actionType") === "subscribePro") ||
@@ -186,7 +182,11 @@ export function OnboardingWizard({
       if (window.shopify?.open) {
         window.shopify.open(url, "_top");
       } else {
-        window.open(url, "_top");
+        try {
+          window.top.location.href = url;
+        } catch {
+          window.location.href = url;
+        }
       }
     }
   }, [billingFetcher.data?.confirmationUrl]);
@@ -960,9 +960,9 @@ export function OnboardingWizard({
             </div>
 
             {(() => {
-              const isAlreadyPro = Boolean(activePayment || activePlan === "PRO");
-              const isFreeSelected = selectedPlan === "FREE" || (!selectedPlan && !isAlreadyPro);
-              const isProSelected = !isFreeSelected;
+              const isAlreadyPro = Boolean(activePayment);
+              const isFreeSelected = !isAlreadyPro;
+              const isProSelected = isAlreadyPro;
 
               return (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
@@ -1018,8 +1018,8 @@ export function OnboardingWizard({
 
                     <button
                       type="button"
-                      disabled={isDowngrading || isSubscribingPro}
-                      onClick={isAlreadyPro && !isFreeSelected ? handleDowngradeToFree : () => handleSelectPlan("FREE")}
+                      disabled={isDowngrading || isSubscribingPro || isFreeSelected}
+                      onClick={isAlreadyPro ? handleDowngradeToFree : undefined}
                       style={{
                         marginTop: "18px",
                         width: "100%",
@@ -1035,9 +1035,9 @@ export function OnboardingWizard({
                     >
                       {isFreeSelected
                         ? "✓ Active (Free Plan)"
-                        : isAlreadyPro
-                        ? (isDowngrading ? "Downgrading..." : "Downgrade to Free")
-                        : "Switch to Free Plan"}
+                        : isDowngrading
+                          ? "Downgrading..."
+                          : "Downgrade to Free"}
                     </button>
                   </div>
 
@@ -1103,6 +1103,7 @@ export function OnboardingWizard({
                       {isProSelected ? (
                         <button
                           type="button"
+                          disabled
                           style={{
                             marginTop: "18px",
                             width: "100%",
@@ -1122,7 +1123,7 @@ export function OnboardingWizard({
                         <button
                           type="button"
                           disabled={isSubscribingPro || isDowngrading}
-                          onClick={activePayment ? () => handleSelectPlan("PRO") : handleSubscribePro}
+                          onClick={handleSubscribePro}
                           style={{
                             marginTop: "18px",
                             width: "100%",
@@ -1146,7 +1147,7 @@ export function OnboardingWizard({
                             </>
                           ) : (
                             <>
-                              {activePayment ? "Switch to Pro Plan" : "Upgrade to Pro ($4.99/mo)"} <ExternalLink size={13} />
+                              Upgrade to Pro ($4.99/mo) <ExternalLink size={13} />
                             </>
                           )}
                         </button>
@@ -1192,31 +1193,25 @@ export function OnboardingWizard({
                 <ArrowLeft size={14} /> Back
               </button>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                {!selectedPlan && (
-                  <span style={{ fontSize: "12px", color: "#8C9196" }}>
-                    Activate a plan above to continue
-                  </span>
-                )}
                 <button
                   type="button"
-                  disabled={!selectedPlan}
                   onClick={() => changeStep(4)}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
                     padding: "9px 18px",
-                    backgroundColor: selectedPlan ? "#008060" : "#E4E5E7",
-                    color: selectedPlan ? "#FFFFFF" : "#8C9196",
+                    backgroundColor: "#008060",
+                    color: "#FFFFFF",
                     border: "none",
                     borderRadius: "6px",
                     fontSize: "13px",
                     fontWeight: "600",
-                    cursor: selectedPlan ? "pointer" : "not-allowed",
+                    cursor: "pointer",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  Next: Enable in Theme <ArrowRight size={14} />
+                  {activePayment ? "Next: Enable in Theme" : "Continue with Free Plan"} <ArrowRight size={14} />
                 </button>
               </div>
             </div>

@@ -3,7 +3,11 @@ import { authenticate } from "../shopify.server.js";
 import { getShopSettings, updateShopSettings } from "../models/review.server.js";
 import { connectDB } from "../db.server.js";
 import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
-import { checkProPlanActive, cancelProSubscription } from "../utils/billing.server.js";
+import {
+  checkProPlanActive,
+  createProSubscription,
+  cancelProSubscription,
+} from "../utils/billing.server.js";
 import process from "process";
 
 async function verifyAppEmbedInTheme(admin, session, targetThemeId) {
@@ -322,128 +326,15 @@ export const action = async ({ request }) => {
   }
 
   if (actionType === "subscribePro") {
-    try {
-      const isTestParam = formData.get("isTest") === "true";
-
-      // Detect if store is a partner development store so test billing is used
-      let isDevStore = false;
-      try {
-        const shopRes = await admin.graphql(
-          `#graphql
-          query getShopPlanForBilling {
-            shop {
-              plan {
-                partnerDevelopment
-              }
-            }
-          }`
-        );
-        const shopJson = await shopRes.json();
-        isDevStore = Boolean(shopJson?.data?.shop?.plan?.partnerDevelopment);
-      } catch (shopPlanErr) {
-        console.warn("Could not check if shop is development store:", shopPlanErr?.message || shopPlanErr);
-      }
-
-      // During app review and on test stores, Shopify strictly requires test: true.
-      // Until an app is published on the Shopify App Store, live billing (test: false) fails.
-      let testFlag = true;
-      if (process.env.NODE_ENV === "production" && !isDevStore && !isTestParam) {
-        testFlag = process.env.FORCE_LIVE_BILLING === "true";
-      }
-
-      const cleanShop = session.shop.replace(".myshopify.com", "");
-      const apiKey = process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416";
-      const testQuery = testFlag ? "&test=true" : "";
-      const returnUrl = `https://admin.shopify.com/store/${cleanShop}/apps/${apiKey}/app/onboarding?step=4${testQuery}`;
-
-      const executeSubscriptionMutation = async (useTest) => {
-        const res = await admin.graphql(
-          `#graphql
-          mutation AppSubscriptionCreate(
-            $name: String!
-            $returnUrl: URL!
-            $test: Boolean
-            $lineItems: [AppSubscriptionLineItemInput!]!
-          ) {
-            appSubscriptionCreate(
-              name: $name
-              returnUrl: $returnUrl
-              test: $test
-              lineItems: $lineItems
-            ) {
-              appSubscription {
-                id
-              }
-              confirmationUrl
-              userErrors {
-                field
-                message
-              }
-            }
-          }`,
-          {
-            variables: {
-              name: "Pro",
-              returnUrl,
-              test: useTest,
-              lineItems: [
-                {
-                  plan: {
-                    appRecurringPricingDetails: {
-                      price: { amount: 4.99, currencyCode: "USD" },
-                      interval: "EVERY_30_DAYS",
-                    },
-                  },
-                },
-              ],
-            },
-          }
-        );
-        return await res.json();
-      };
-
-      let json = await executeSubscriptionMutation(testFlag);
-      let userErrors = json?.data?.appSubscriptionCreate?.userErrors;
-
-      // If failed with live charge (e.g. unpublished app / test account), retry automatically with test: true
-      if (userErrors && userErrors.length > 0 && !testFlag) {
-        console.warn("Live subscription creation failed, retrying with test: true:", userErrors);
-        json = await executeSubscriptionMutation(true);
-        userErrors = json?.data?.appSubscriptionCreate?.userErrors;
-      }
-
-      if (userErrors && userErrors.length > 0) {
-        const userErrMsg = userErrors.map((e) => e.message).join(", ");
-        console.error("Shopify billing userErrors in onboarding:", userErrMsg);
-        return { error: userErrMsg };
-      }
-
-      const confirmationUrl = json?.data?.appSubscriptionCreate?.confirmationUrl;
-      if (confirmationUrl) {
-        return { confirmationUrl };
-      }
-
-      return { error: "No confirmation URL returned by Shopify." };
-    } catch (err) {
-      let errorMessage = "Failed to initiate billing request";
-      if (err instanceof Response) {
-        try {
-          const errorJson = await err.json();
-          errorMessage = errorJson?.errors?.[0]?.message || (typeof errorJson?.errors === "string" ? errorJson.errors : null) || errorJson?.message || errorMessage;
-        } catch {
-          try {
-            const text = await err.text();
-            if (text && text.length < 200) errorMessage = text;
-          } catch {
-            // ignore
-          }
-        }
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      console.error("subscribePro error in onboarding:", errorMessage, err);
-      return { error: errorMessage };
-    }
+    const isTestParam = formData.get("isTest") === "true";
+    const result = await createProSubscription({
+      admin,
+      billing,
+      session,
+      returnPath: "/app/onboarding?step=4&upgraded=true",
+      isTestParam,
+    });
+    return result;
   }
 
   if (actionType === "saveOnboardingStep") {
@@ -451,27 +342,34 @@ export const action = async ({ request }) => {
     const plan = formData.get("plan");
     const primaryColor = formData.get("primaryColor");
     const update = { onboardingStep: step };
-    if (plan) update.plan = plan;
     if (primaryColor) update.primaryColor = primaryColor;
-    await updateShopSettings(session.shop, update);
 
     if (plan === "FREE") {
+      update.plan = "FREE";
       await cancelProSubscription({ admin, billing, shop: session.shop });
     }
 
-    return { success: true, onboardingStep: step, plan, hasActivePayment: plan === "PRO" };
+    await updateShopSettings(session.shop, update);
+
+    const billingResult = await checkProPlanActive({ admin, billing, shop: session.shop });
+    return {
+      success: true,
+      onboardingStep: step,
+      plan: billingResult.currentPlan,
+      hasActivePayment: billingResult.hasActivePayment,
+    };
   }
 
   if (actionType === "completeOnboarding") {
-    const plan = formData.get("plan") || "FREE";
     const primaryColor = formData.get("primaryColor") || "#FFB800";
+    const billingResult = await checkProPlanActive({ admin, billing, shop: session.shop });
     await updateShopSettings(session.shop, {
       onboardingCompleted: true,
       onboardingStep: 5,
-      plan,
+      plan: billingResult.currentPlan,
       primaryColor,
     });
-    return { success: true, onboardingCompleted: true };
+    return { success: true, onboardingCompleted: true, plan: billingResult.currentPlan };
   }
 
   return null;
