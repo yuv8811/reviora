@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "f79eb2d3832f37be2bb3a5c7c1efd416"
-name = "Reviora"
+name = "Reviora: Photo & Video Reviews"
 application_url = "https://reviora-ef66.onrender.com"
 embedded = true
 
