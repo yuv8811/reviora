@@ -37,11 +37,25 @@ export default function App() {
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         {apiKey && <meta name="shopify-api-key" content={apiKey} />}
         {shop && <meta name="shopify-shop" content={shop} />}
-        <link rel="preconnect" href="https://cdn.shopify.com/" />
+        <link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.shopify.com" />
+        <link
+          rel="preload"
+          as="style"
+          href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
+        />
         <link
           rel="stylesheet"
           href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
+          media="print"
+          onLoad="this.media='all'"
         />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
+          />
+        </noscript>
         <Meta />
         <Links />
       </head>

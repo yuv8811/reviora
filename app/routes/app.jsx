@@ -4,7 +4,7 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 import { PageSkeleton } from "../components/PageSkeleton.jsx";
 import { connectDB } from "../db.server.js";
-import { getShopSettings } from "../models/review.server.js";
+import { StoreReviews } from "../models/review.model.js";
 import { notifyAppInstall } from "../services/slack.server.js";
 import process from "process";
 
@@ -34,8 +34,11 @@ export const loader = async ({ request }) => {
   );
 
   await connectDB();
-  const shopSettings = await getShopSettings(session.shop);
-  const isOnboardingCompleted = Boolean(shopSettings?.onboardingCompleted);
+  const storeDoc = await StoreReviews.findOne(
+    { shop: session.shop },
+    { onboardingCompleted: 1 }
+  ).lean();
+  const isOnboardingCompleted = Boolean(storeDoc?.onboardingCompleted);
 
   // If onboarding is not completed, route main app entry to onboarding wizard unless user navigated to a specific sub-page
   if (!isOnboardingCompleted && !url.pathname.startsWith("/app/onboarding")) {

@@ -5,7 +5,7 @@ import { updateShopSettings, getShopSettings } from "../models/review.server.js"
  * Queries Shopify's GraphQL currentAppInstallation.activeSubscriptions (handles both test & live charges),
  * with fallbacks to billing.check (both test: true and test: false) and database state.
  */
-export async function checkProPlanActive({ admin, billing, shop }) {
+export async function checkProPlanActive({ admin, billing, shop, currentPlan }) {
   let hasActivePayment = false;
   let activeSubscriptionName = null;
   let activeSubscription = null;
@@ -88,17 +88,19 @@ export async function checkProPlanActive({ admin, billing, shop }) {
     }
   }
 
-  // 4. Sync the verified status into database
-  try {
-    const planInDb = hasActivePayment ? "PRO" : "FREE";
-    await updateShopSettings(shop, { plan: planInDb });
-  } catch (syncErr) {
-    console.error("Failed to sync plan in DB:", syncErr?.message || syncErr);
+  // 4. Sync the verified status into database only if changed
+  const verifiedPlan = hasActivePayment ? "PRO" : "FREE";
+  if (currentPlan === undefined || currentPlan !== verifiedPlan) {
+    try {
+      await updateShopSettings(shop, { plan: verifiedPlan });
+    } catch (syncErr) {
+      console.error("Failed to sync plan in DB:", syncErr?.message || syncErr);
+    }
   }
 
   return {
     hasActivePayment,
-    currentPlan: hasActivePayment ? "PRO" : "FREE",
+    currentPlan: verifiedPlan,
     activeSubscriptionName,
     activeSubscription,
   };

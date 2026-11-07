@@ -1,67 +1,45 @@
 import { useState } from "react";
-import { useLoaderData, useFetcher, useNavigate, Link, redirect } from "react-router";
+import { useLoaderData, Link, redirect } from "react-router";
 import { authenticate } from "../shopify.server.js";
-import { getDashboardMetrics, getShopSettings, updateShopSettings } from "../models/review.server.js";
 import { StoreReviews } from "../models/review.model.js";
+import { ReviewRequest } from "../models/reviewRequest.model.js";
 import { connectDB } from "../db.server.js";
 import { MetricCard } from "../components/MetricCard.jsx";
 import { StarRating } from "../components/StarRating.jsx";
-import { OnboardingWizard } from "../components/OnboardingWizard.jsx";
-import {
-  checkProPlanActive,
-  createProSubscription,
-  cancelProSubscription,
-} from "../utils/billing.server.js";
+import { checkProPlanActive } from "../utils/billing.server.js";
 import { Star, MessageSquare, Clock, MessageCircleText, MessageCirclePlus } from "lucide-react";
-import process from 'process'
+import process from "process";
 
 export const loader = async ({ request }) => {
   const { session, admin, billing } = await authenticate.admin(request);
   const shop = session.shop;
-  const metrics = await getDashboardMetrics(shop);
+  const url = new URL(request.url);
+
+  // Fast redirect if onboarding explicitly requested in query
+  const forceOnboarding =
+    url.searchParams.get("onboarding") === "true" ||
+    url.searchParams.get("onboarding") === "1";
+
+  if (forceOnboarding) {
+    const params = new URLSearchParams(url.searchParams);
+    return redirect(`/app/onboarding?${params.toString()}`);
+  }
+
   await connectDB();
-  const storeDoc = await StoreReviews.findOne({ shop }).lean({ virtuals: true });
-  const shopSettings = await getShopSettings(shop);
 
-  // Check live Shopify billing status for Pro plan (accurately detects both test & live charges)
-  const billingResult = await checkProPlanActive({ admin, billing, shop });
-  const hasActivePayment = billingResult.hasActivePayment;
+  // Run all required database reads and live billing check concurrently in parallel
+  const [storeDoc, totalRequests, billingResult] = await Promise.all([
+    StoreReviews.findOne({ shop }).lean({ virtuals: true }),
+    ReviewRequest.countDocuments({ shop }),
+    checkProPlanActive({ admin, billing, shop }),
+  ]);
 
-  let themes = [];
-  let defaultThemeId = "current";
-  try {
-    const response = await admin.graphql(
-      `#graphql
-      query getStoreThemes {
-        themes(first: 25) {
-          nodes {
-            id
-            name
-            role
-          }
-        }
-      }`
-    );
-    const json = await response.json();
-    const nodes = json?.data?.themes?.nodes || [];
-    if (nodes.length > 0) {
-      themes = nodes.map((t) => {
-        const numericId = t.id ? t.id.split("/").pop() : "current";
-        const isLive = t.role === "MAIN";
-        return {
-          id: numericId,
-          name: t.name,
-          role: t.role,
-          isLive,
-          label: isLive ? `${t.name} (live)` : `${t.name} (${t.role ? t.role.toLowerCase() : "unpublished"})`,
-          value: numericId,
-        };
-      });
-      themes.sort((a, b) => (b.isLive ? 1 : 0) - (a.isLive ? 1 : 0));
-      defaultThemeId = themes[0]?.id || "current";
-    }
-  } catch (err) {
-    console.error("Theme lookup error in dashboard:", err?.message || err);
+  const isOnboardingCompleted = Boolean(storeDoc?.onboardingCompleted);
+
+  // If onboarding is not yet completed for this store, direct to the setup wizard
+  if (!isOnboardingCompleted) {
+    const params = new URLSearchParams(url.searchParams);
+    return redirect(`/app/onboarding?${params.toString()}`);
   }
 
   const allReviews = (storeDoc?.reviews || []).map((r) => ({
@@ -69,27 +47,51 @@ export const loader = async ({ request }) => {
     id: r.id || r._id?.toString(),
   }));
 
-  // Sort latest first and take 5
+  // Calculate dashboard KPI metrics directly in-memory from the loaded store document
+  const totalReviews = allReviews.length;
+  const publishedReviews = allReviews.filter((r) => (r.status || "").toUpperCase() === "PUBLISHED");
+  const pendingReviews = allReviews.filter((r) => (r.status || "").toUpperCase() === "PENDING").length;
+
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let weightedSum = 0;
+
+  publishedReviews.forEach((item) => {
+    if (distribution[item.rating] !== undefined) {
+      distribution[item.rating] += 1;
+      weightedSum += item.rating;
+    }
+  });
+
+  const pubCount = publishedReviews.length;
+  const averageRating = pubCount > 0 ? (weightedSum / pubCount).toFixed(1) : "0.0";
+
+  const metrics = {
+    totalReviews,
+    publishedReviews: pubCount,
+    pendingReviews,
+    averageRating: Number(averageRating),
+    distribution,
+    totalRequests,
+  };
+
+  // Extract the 5 most recent reviews
   allReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const recentReviews = allReviews.slice(0, 5);
 
-  const url = new URL(request.url);
-  const forceOnboarding =
-    url.searchParams.get("onboarding") === "true" ||
-    url.searchParams.get("onboarding") === "1";
+  const shopSettings = {
+    shop,
+    plan: storeDoc?.plan || "FREE",
+    widgetSettings: storeDoc?.widgetSettings || {},
+    onboardingStep: storeDoc?.onboardingStep || 1,
+    onboardingCompleted: true,
+    primaryColor: storeDoc?.widgetSettings?.primaryColor || "#FFB800",
+    badgeColor: storeDoc?.widgetSettings?.badgeColor || "#10B981",
+    autoPublish: true,
+    minAutoPublishRating: 4,
+    enableAiFeatures: true,
+  };
 
-  // Redirect to dedicated /app/onboarding if onboarding requested or not completed
-  if (forceOnboarding || !shopSettings?.onboardingCompleted) {
-    const params = new URLSearchParams(url.searchParams);
-    return redirect(`/app/onboarding?${params.toString()}`);
-  }
-
-  const urlStep = parseInt(url.searchParams.get("step") || "0", 10);
-  const dbStep = shopSettings?.onboardingStep || 1;
-  let initialStep = urlStep > 0 ? urlStep : dbStep;
-  if (hasActivePayment && initialStep < 4) {
-    initialStep = 4;
-  }
+  const hasActivePayment = Boolean(billingResult?.hasActivePayment);
 
   return {
     metrics,
@@ -97,120 +99,14 @@ export const loader = async ({ request }) => {
     shopSettings,
     shop,
     apiKey: process.env.SHOPIFY_API_KEY || "f79eb2d3832f37be2bb3a5c7c1efd416",
-    defaultThemeId,
-    themes,
-    forceOnboarding,
-    initialStep,
     hasActivePayment,
     currentPlan: hasActivePayment ? "PRO" : "FREE",
+    justCompleted: url.searchParams.get("setupComplete") === "true",
   };
-};
-
-export const action = async ({ request }) => {
-  const { session, admin, billing } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const actionType = formData.get("actionType");
-
-  if (actionType === "verifyTheme") {
-    try {
-      const response = await admin.graphql(
-        `#graphql
-        query getActiveThemeForVerification {
-          themes(first: 1, roles: [MAIN]) {
-            nodes {
-              id
-              name
-            }
-          }
-        }`
-      );
-      const json = await response.json();
-      const liveTheme = json?.data?.themes?.nodes?.[0];
-      return {
-        verified: true,
-        themeName: liveTheme?.name || "Live Theme",
-      };
-    } catch (err) {
-      console.error("Theme verification query error:", err?.message || err);
-      return { verified: true, themeName: "Live Theme" };
-    }
-  }
-
-  if (actionType === "downgradeFree") {
-    const result = await cancelProSubscription({ admin, billing, shop: session.shop });
-    return result;
-  }
-
-  if (actionType === "subscribePro") {
-    const isTestParam = formData.get("isTest") === "true";
-    const result = await createProSubscription({
-      admin,
-      billing,
-      session,
-      returnPath: "/app/onboarding?step=4&upgraded=true",
-      isTestParam,
-    });
-    return result;
-  }
-
-  if (actionType === "saveOnboardingStep") {
-    const step = parseInt(formData.get("step") || "1", 10);
-    const plan = formData.get("plan");
-    const primaryColor = formData.get("primaryColor");
-    const update = { onboardingStep: step };
-    if (primaryColor) update.primaryColor = primaryColor;
-
-    if (plan === "FREE") {
-      update.plan = "FREE";
-      await cancelProSubscription({ admin, billing, shop: session.shop });
-    }
-
-    await updateShopSettings(session.shop, update);
-
-    const billingResult = await checkProPlanActive({ admin, billing, shop: session.shop });
-    return {
-      success: true,
-      onboardingStep: step,
-      plan: billingResult.currentPlan,
-      hasActivePayment: billingResult.hasActivePayment,
-    };
-  }
-
-  if (actionType === "completeOnboarding") {
-    const primaryColor = formData.get("primaryColor") || "#FFB800";
-    const billingResult = await checkProPlanActive({ admin, billing, shop: session.shop });
-    await updateShopSettings(session.shop, {
-      onboardingCompleted: true,
-      onboardingStep: 5,
-      plan: billingResult.currentPlan,
-      primaryColor,
-    });
-    return { success: true, onboardingCompleted: true, plan: billingResult.currentPlan };
-  }
-
-  return null;
 };
 
 export default function DashboardPage() {
   const loaderData = useLoaderData();
-  const fetcher = useFetcher();
-  const navigate = useNavigate();
-
-  const shopSettings = loaderData?.shopSettings;
-  const shop = loaderData?.shop;
-  const apiKey = loaderData?.apiKey;
-  const defaultThemeId = loaderData?.defaultThemeId || "current";
-
-  const [replayOnboarding, setReplayOnboarding] = useState(false);
-  const [completedLocally, setCompletedLocally] = useState(false);
-
-  // Check if onboarding is completed in database, active state, or after completing
-  const isOnboardingCompleted =
-    completedLocally ||
-    Boolean(fetcher.data?.onboardingCompleted) ||
-    (!replayOnboarding &&
-      !loaderData?.forceOnboarding &&
-      Boolean(shopSettings?.onboardingCompleted));
 
   const metrics = loaderData?.metrics || {
     averageRating: 0,
@@ -221,33 +117,6 @@ export default function DashboardPage() {
     distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
   };
   const recentReviews = loaderData?.recentReviews || [];
-
-  const handleCompleteOnboarding = ({ primaryColor, plan }) => {
-    setCompletedLocally(true);
-    setReplayOnboarding(false);
-
-    if (typeof window !== "undefined") {
-      try {
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete("onboarding");
-        cleanUrl.searchParams.delete("step");
-        window.history.replaceState({}, "", cleanUrl.pathname);
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    fetcher.submit(
-      {
-        actionType: "completeOnboarding",
-        primaryColor,
-        plan,
-      },
-      { method: "POST" }
-    );
-
-    navigate("/app", { replace: true });
-  };
 
   // Feature request and contact support state
   const [featureTitle, setFeatureTitle] = useState("");
@@ -285,28 +154,10 @@ export default function DashboardPage() {
     window.open("mailto:support@reviora.com?subject=Support%20Inquiry%20-%20Reviora", "_blank");
   };
 
-  // If app was installed first time and onboarding is incomplete, enforce unskippable wizard
-  if (!isOnboardingCompleted) {
-    return (
-      <s-page heading="Setup Guide">
-        <OnboardingWizard
-          shop={shop}
-          apiKey={apiKey}
-          defaultThemeId={defaultThemeId}
-          themes={loaderData?.themes || []}
-          onComplete={handleCompleteOnboarding}
-          initialStep={loaderData?.initialStep || 1}
-          hasActivePayment={Boolean(loaderData?.hasActivePayment)}
-          currentPlan={loaderData?.currentPlan || "FREE"}
-        />
-      </s-page>
-    );
-  }
-
   return (
     <s-page heading="Dashboard">
       <s-stack gap="base">
-        {fetcher.data?.onboardingCompleted && (
+        {loaderData?.justCompleted && (
           <s-banner tone="success" heading="🎉 Setup Complete!">
             <s-paragraph>
               Congratulations! Your theme widgets and initial settings have been activated.
@@ -351,14 +202,6 @@ export default function DashboardPage() {
             icon={Clock}
             tone={metrics.pendingReviews > 0 ? "warning" : "success"}
           />
-
-          {/* <MetricCard
-            label="Review Requests Sent"
-            value={metrics.totalRequests}
-            subtext="Automated fulfillment notifications"
-            icon={Send}
-            tone="default"
-          /> */}
         </s-grid>
 
         {/* Recent Reviews Activity Section */}
@@ -419,7 +262,6 @@ export default function DashboardPage() {
             )}
           </s-stack>
         </s-section>
-
 
         {/* 2 App Bridge Callout Cards: Request a Feature & Contact Us */}
         <s-grid gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))" gap="base">
@@ -500,5 +342,3 @@ export default function DashboardPage() {
     </s-page>
   );
 }
-
-

@@ -69,7 +69,7 @@ export async function verifyCustomerByEmail(shop, email, adminClient = null) {
  */
 export async function getShopSettings(shop) {
   await connectDB();
-  let storeDoc = await StoreReviews.findOne({ shop });
+  let storeDoc = await StoreReviews.findOne({ shop }, { reviews: 0 }).lean();
 
   if (!storeDoc) {
     try {
@@ -81,12 +81,15 @@ export async function getShopSettings(shop) {
         onboardingStep: 1,
         onboardingCompleted: false,
       });
+      if (storeDoc?.toObject) {
+        storeDoc = storeDoc.toObject();
+      }
     } catch {
-      storeDoc = await StoreReviews.findOne({ shop });
+      storeDoc = await StoreReviews.findOne({ shop }, { reviews: 0 }).lean();
     }
   }
 
-  const doc = storeDoc?.toObject ? storeDoc.toObject({ virtuals: true }) : storeDoc || {};
+  const doc = storeDoc || {};
 
   return {
     shop,

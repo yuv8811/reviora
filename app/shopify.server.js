@@ -1,6 +1,11 @@
 import "@shopify/shopify-app-react-router/adapters/node";
 import dns from "dns";
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {
+  console.warn("Could not set custom DNS servers:", e?.message || e);
+}
 
 import {
   ApiVersion,
